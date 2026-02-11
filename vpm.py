@@ -110,9 +110,10 @@ class VPM:
         self.n = len(self.points[:,0])
         self.v_inf = v_inf
         self.alpha_deg = alpha_deg
-        self.alpha_rad = self.alpha_deg*(np.pi/180.0)
+        self.alpha_rad = np.radians(self.alpha_deg)
 
         self.chord = max(self.points[:,0]) - min(self.points[:,0])
+        # self.chord = 1.0
         # print("chord = ",self.chord)
 
         self.offset = 1.0e-1
@@ -320,6 +321,8 @@ class VPM:
 
         # leave the last element a zero
         for i in range(0, self.n - 1):
+
+            print((self.points[i+1,0] - self.points[i,0])*np.sin(self.alpha_rad))
 
             self.b[i] = self.v_inf*(  (self.points[i+1,1] - self.points[i,1])*np.cos(self.alpha_rad) 
                                     - (self.points[i+1,0] - self.points[i,0])*np.sin(self.alpha_rad))/self.l_k[i]
@@ -560,11 +563,11 @@ class VPM:
 
         self.calc_control_points()
         self.calc_l_k()
+
         self.calc_A_matrix()
         # self.A, self.P_matrices = calc_A_matrix_numba(self.points, self.l_k, self.cp)
-        
+
         self.calc_b_vector()
-        print("bvec", self.b)
         self.solve_for_gamma()
         self.calc_coefficients()
 
@@ -578,7 +581,7 @@ if __name__ == "__main__":
     
     # initialize airfoil object
     v_inf = 10.0
-    alpha_deg = 5.0
+    alpha_deg = 0.0
     points = np.array([
     [9.99916186046740E-01,    -1.25720929889932E-03],
     [8.82134178452395E-01,    -9.50831840642325E-03],
@@ -590,6 +593,9 @@ if __name__ == "__main__":
     [5.87793321121073E-01,    6.47523970842430E-02],
     [8.83910264666582E-01,    2.35849332375050E-02],
     [1.00008381395325E+00,    1.25720929889932E-03]])
+
+    print("size = ", np.shape(points),"\n")
+
     airfoil = VPM(points, v_inf, alpha_deg)
     airfoil.run()
     
@@ -608,7 +614,7 @@ if __name__ == "__main__":
     print("\nb vector")
     for item in airfoil.b: print(item)
 
-    print(" Operating conditions:")
+    print("\n Operating conditions:")
     print("  alpha[deg] = ", airfoil.alpha_deg )
     print("       v_inf = ", airfoil.v_inf, "\n")
     print(" Results:")

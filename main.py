@@ -537,7 +537,7 @@ if __name__ == "__main__":
 
     # initialize airfoil object
     script_dir = os.path.dirname(__file__)
-    file_path = os.path.join(script_dir, "input_vpm.json")
+    file_path = os.path.join(script_dir, "input_files/input.json")
 
     test = airfoil(file_path)
     test.run()
