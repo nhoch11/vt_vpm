@@ -289,7 +289,7 @@ class VPM:
                 # calc P matrix for influence of jth panel, ith control point
                 # print("i = ", i, "j = ", j)
                 P = self.calc_P(j,self.cp[i])
-                self.P_matrices[j,i] = P
+                # self.P_matrices[j,i] = P
 
                 self.A[i,j]   = (self.A[i,j]   + (dx_i_over_l_i)*P[1,0]
                                                - (dy_i_over_l_i)*P[0,0])
@@ -564,7 +564,7 @@ class VPM:
         # self.A, self.P_matrices = calc_A_matrix_numba(self.points, self.l_k, self.cp)
         
         self.calc_b_vector()
-        # print("bvec", self.b)
+        print("bvec", self.b)
         self.solve_for_gamma()
         self.calc_coefficients()
 
@@ -601,6 +601,12 @@ if __name__ == "__main__":
 
     print("\ngammas")
     for item in airfoil.gamma: print(item) 
+
+    print("\nA matrix")
+    for row in airfoil.A: print(row)
+
+    print("\nb vector")
+    for item in airfoil.b: print(item)
 
     print(" Operating conditions:")
     print("  alpha[deg] = ", airfoil.alpha_deg )
