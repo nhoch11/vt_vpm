@@ -1,11 +1,11 @@
 {
+    "cost_function_integral_form" : "surface",
+
     "surface_grid": {
         "type": "mapping",
         "type_options": ["mapping", "equation", "file"],
         "num_panels":  800,
         "mapping_inputs": {
-            "offset_from_singularity": false,
-            "offset_coef": 1.0e-7,
             "clustering": "even",
             "clustering_options": ["even", "chebyshev", "growth", "cosine", "mirrored_cosine", "log_cosine", "log_mirrored_cosine"],
             "radius": 1.0,
@@ -21,8 +21,6 @@
         "file": {}
     },
     "volume_grid":{
-        "do_mapping_based": false,
-        "do_surface_based": false,
         "mapping_inputs": {
             "wake_cells": 10000,
             "radial_cells": 2000,

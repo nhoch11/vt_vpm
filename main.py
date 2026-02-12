@@ -39,6 +39,9 @@ class airfoil:
         json_string=open(self.input_file).read()
         json_vals = json.loads(json_string)
 
+        # cost function integration type:
+        self.type = json_vals["cost_function_integral_form"]
+        
         # surface grid
         self.type                      = json_vals["surface_grid"]["type"]
         self.num_panels                = json_vals["surface_grid"]["num_panels"]

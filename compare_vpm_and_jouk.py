@@ -12,7 +12,7 @@ from vpm import VPM
 from tqdm import tqdm
 
 start_time = time.time()
-num_doubles = 11
+num_doubles = 8
 zeta_clustering = "even"
 D = 0.0
 zeta_0 = -0.09 + 1j*0.01
@@ -26,9 +26,15 @@ theta_stag = alpha_rad - np.arcsin(gamma/(4*np.pi*v_inf*radius))
 
 CL_joukowski = 2*np.pi*(np.sin(alpha_rad) + zeta_0.imag*np.cos(alpha_rad)/np.sqrt(radius**2 - zeta_0.imag**2))/(1 + zeta_0.real/(np.sqrt(radius**2 - zeta_0.imag**2)-zeta_0.real))
 print("CL_Joukowski = ", CL_joukowski)
+
+CL_jouk_list = []
+gamma_jouk_list = []
+CL_list = []
+gamma_list = []
 CL_error_list = []
 gamma_error_list = []
 points_list = []
+
 for i in range(1,num_doubles):
     n = 10*2**i
     points_list.append(n)
@@ -37,7 +43,12 @@ for i in range(1,num_doubles):
     jouk_vpm = cylinder(D, zeta_0, alpha_rad, v_inf, radius, n, theta_stag, zeta_clustering, False, 0.0, True, False)
     vpm = VPM(jouk_vpm.vpm_points, v_inf, np.rad2deg(alpha_rad))
     vpm.run()
-    vpm.calc_coefficients()
+    vpm.calc_total_gamma_and_CL()
+
+    gamma_jouk_list.append(gamma)
+    CL_jouk_list.append(CL_joukowski)
+    CL_list.append(vpm.CL)
+    gamma_list.append(vpm.gamma_total)
     CL_error_list.append(100.*np.abs(vpm.CL-CL_joukowski)/CL_joukowski)
     gamma_error_list.append(100.*np.abs(vpm.gamma_total-gamma)/gamma)
 
@@ -78,8 +89,12 @@ ax2.set_box_aspect(1)
 fig2.savefig(f"figures/compare_vpm_and_jouk/gamma_convergence_zeta_clustering={zeta_clustering}_zeta0={zeta_0}.png", format='png')
 
 # Save data to an excel file
-CL_error_list_clean = [float(e) for e in CL_error_list]
-gamma_error_list_clean = [float(g) for g in gamma_error_list]
+CL_jouk_list_clean = [float(item) for item in CL_jouk_list]
+gamma_jouk_list_clean = [float(item) for item in gamma_jouk_list]
+CL_list_clean = [float(item) for item in CL_list]
+gamma_list_clean = [float(item) for item in gamma_list]
+CL_error_list_clean = [float(item) for item in CL_error_list]
+gamma_error_list_clean = [float(item) for item in gamma_error_list]
 metadata = [["zeta clustering = ", zeta_clustering],
             ["D = ", D],
             ["zeta_0 = ", zeta_0],
@@ -89,8 +104,12 @@ metadata = [["zeta clustering = ", zeta_clustering],
 
 df = pd.DataFrame({
     "num_points": points_list,
-    "CL_abs_percent_error": CL_error_list_clean},
-    "gamma_abs_percent_error": gamma_error_list_clean)
+    "CL_joukowski": CL_jouk_list_clean,
+    "CL_vpm": CL_list_clean,
+    "CL_abs_percent_error": CL_error_list_clean,
+    "gamma_joukowski": gamma_jouk_list_clean,
+    "gamma_vpm": gamma_list_clean,
+    "gamma_abs_percent_error": gamma_error_list_clean})
 
 meta_df = pd.DataFrame(metadata, columns=["",""])
 

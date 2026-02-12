@@ -322,7 +322,6 @@ class VPM:
         # leave the last element a zero
         for i in range(0, self.n - 1):
 
-            print((self.points[i+1,0] - self.points[i,0])*np.sin(self.alpha_rad))
 
             self.b[i] = self.v_inf*(  (self.points[i+1,1] - self.points[i,1])*np.cos(self.alpha_rad) 
                                     - (self.points[i+1,0] - self.points[i,0])*np.sin(self.alpha_rad))/self.l_k[i]
@@ -564,8 +563,8 @@ class VPM:
         self.calc_control_points()
         self.calc_l_k()
 
-        self.calc_A_matrix()
-        # self.A, self.P_matrices = calc_A_matrix_numba(self.points, self.l_k, self.cp)
+        # self.calc_A_matrix()
+        self.A, self.P_matrices = calc_A_matrix_numba(self.points, self.l_k, self.cp)
 
         self.calc_b_vector()
         self.solve_for_gamma()

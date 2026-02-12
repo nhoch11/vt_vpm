@@ -206,6 +206,8 @@ class cylinder:
             self.CL = 2.*np.pi*( (np.sin(self.alpha_rad) + y0*np.cos(self.alpha_rad)/np.sqrt(R**2 - y0**2) ) /
                             (1. + x0 / (np.sqrt(R**2 - y0**2) - x0) ))
             # print("CL mapping = ", self.CL)
+            # eq 119 phillips
+            self.chord = 4.0*(self.radius**2 - self.zeta_0.imag**2)/(np.sqrt(self.radius**2 - self.zeta_0.imag**2) - self.zeta_0.real)
 
         # If nearly sharp, the singularity will be at or nearly on the zeta surface
         # 11/17/2025,  I think this is for the case when I specify an exactly sharp airfoil.
@@ -257,18 +259,29 @@ class cylinder:
             stag_pt_z = self.zeta_to_z(stag_pt_chi+self.zeta_0)
 
         vpm_points = np.column_stack((z_surface_vpm.real, z_surface_vpm.imag))
+
+
         self.vpm_points_unshifted = vpm_points.copy()
 
+        # shift points
         shift_x = np.min(vpm_points[:,0])
         self.shift_x = -shift_x
         vpm_points[:,0] = vpm_points[:,0] - shift_x
         # print("vpm_points shifted x:\n", vpm_points)
-        x_length = np.max(vpm_points[:,0])
+
+
+        # rescale 
+        rescale = False
 
         self.vpm_points = vpm_points.copy()
-        self.vpm_points = vpm_points/x_length
+        x_length = np.max(vpm_points[:,0])
+        
+        if rescale:
+            self.vpm_points = vpm_points/x_length
 
         # print("vpm_points shifted and scaled:\n", self.vpm_points)
+
+        # reverse order from counter clockwise to clockwise
         self.vpm_points = self.vpm_points[::-1]
         self.vpm_points_unshifted = self.vpm_points_unshifted[::-1]
 
