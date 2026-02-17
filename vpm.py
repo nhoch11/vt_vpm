@@ -116,7 +116,9 @@ class VPM:
         # self.chord = 1.0
         # print("chord = ",self.chord)
 
-        self.offset = 1.0e-1
+        self.surface_offset = 1.0e-1
+        self.h = 1.0e-5
+        
         self.at_points = False
 
 
@@ -189,12 +191,12 @@ class VPM:
 
             
 
-            self.cp_offset[i] = self.cp[i] + self.offset*self.cp_norm[i]
+            self.cp_offset[i] = self.cp[i] + self.surface_offset*self.cp_norm[i]
             
             b = (self.cp_norm[i] + self.cp_norm[i-1])
             self.vert_norm[i] = b/np.linalg.norm(b)
 
-            self.points_offset[i] = self.points[i] + self.offset*self.vert_norm[i]
+            self.points_offset[i] = self.points[i] + self.surface_offset*self.vert_norm[i]
 
 
 
@@ -368,7 +370,7 @@ class VPM:
         
         appellian = 0
 
-        h = 1.0e-5
+        
 
         if self.at_points:
             self.V_offset_pts = np.zeros((len(self.cp), 2))
@@ -414,7 +416,7 @@ class VPM:
             
             self.vx_list.append(V[0])
             self.vy_list.append(V[1])
-            h = 5.0e-5
+            h = self.h
             
             # first order
             if self.at_points:
@@ -462,44 +464,44 @@ class VPM:
         # self.appellian_numerical = appellian
         print("appellian = ", self.appellian_numerical)
 
-        apply_plot_settings()
-        fig, ax1 = plt.subplots(**default_subplot_settings)
-        ax1.scatter(self.distance, self.integrand_list, color = "k", s=2)
-        # ax1.set_xlim([0.0, 0.4])
-        # ax1.set_ylim([-700000, 0])
-        # ax.tick_params(axis='both', which='both', )
-        # ax1.set_xticks([ 0.0, np.pi/2., np.pi, 3.*np.pi/2., 2*np.pi], ["0", r"$\frac{\pi}{2}$", r"$\pi$", r"$\frac{3\pi}{2}$", r"$2\pi$"])
-        # ax1.set_yticks([ -2.0, -1.0, 0.0, 1.0, 2.0,], [ "-2", "-1", "0", "1", "2"])
-        ax1.set_xlabel("Contour Length", fontsize = 10)
-        ax1.set_ylabel("Appellian Integrand", fontsize = 10)
-        ax1.set_box_aspect(1)
+        # apply_plot_settings()
+        # fig, ax1 = plt.subplots(**default_subplot_settings)
+        # ax1.scatter(self.distance, self.integrand_list, color = "k", s=2)
+        # # ax1.set_xlim([0.0, 0.4])
+        # # ax1.set_ylim([-700000, 0])
+        # # ax.tick_params(axis='both', which='both', )
+        # # ax1.set_xticks([ 0.0, np.pi/2., np.pi, 3.*np.pi/2., 2*np.pi], ["0", r"$\frac{\pi}{2}$", r"$\pi$", r"$\frac{3\pi}{2}$", r"$2\pi$"])
+        # # ax1.set_yticks([ -2.0, -1.0, 0.0, 1.0, 2.0,], [ "-2", "-1", "0", "1", "2"])
+        # ax1.set_xlabel("Contour Length", fontsize = 10)
+        # ax1.set_ylabel("Appellian Integrand", fontsize = 10)
+        # ax1.set_box_aspect(1)
 
 
-        name = f"Figures/{len(self.cp)}/vpm_integrand_plot_{len(self.cp)}_segments.png"
-        os.makedirs(os.path.dirname(name), exist_ok=True)
-        fig.savefig(name, format='png')
-        # fig.savefig(f"Figures/integrand_plot_D={self.D:.4f}_zeta0={self.zeta_0.real:3f}+i{self.zeta_0.imag:3f}_gamma={gamma:.3f}_{len(self.thetas)}_segments.svg", format='svg')
-        # fig.savefig(f"Figures/integrand_plot_D={self.D:.4f}_zeta0={self.zeta_0.real:3f}+i{self.zeta_0.imag:3f}_gamma={gamma:.3f}_{len(self.thetas)}_segments.pdf", format='pdf')
+        # name = f"Figures/{len(self.cp)}/vpm_integrand_plot_{len(self.cp)}_segments.png"
+        # os.makedirs(os.path.dirname(name), exist_ok=True)
+        # fig.savefig(name, format='png')
+        # # fig.savefig(f"Figures/integrand_plot_D={self.D:.4f}_zeta0={self.zeta_0.real:3f}+i{self.zeta_0.imag:3f}_gamma={gamma:.3f}_{len(self.thetas)}_segments.svg", format='svg')
+        # # fig.savefig(f"Figures/integrand_plot_D={self.D:.4f}_zeta0={self.zeta_0.real:3f}+i{self.zeta_0.imag:3f}_gamma={gamma:.3f}_{len(self.thetas)}_segments.pdf", format='pdf')
 
-        # plt.show()
+        # # plt.show()
         
-        fig2, ax2 = plt.subplots(**default_subplot_settings)
-        ax2.scatter(self.distance, self.vx_list, color = "r", s=2, label="V_x")
-        ax2.scatter(self.distance, self.vy_list, color = "b", s=2, label="V_y")
-        ax1.set_xlim([-5.0, 15.0])
-        # ax2.set_ylim([-40000,20000])
-        # ax.tick_params(axis='both', which='both', )
-        # ax1.set_xticks([ 0.0, np.pi/2., np.pi, 3.*np.pi/2., 2*np.pi], ["0", r"$\frac{\pi}{2}$", r"$\pi$", r"$\frac{3\pi}{2}$", r"$2\pi$"])
-        # ax1.set_yticks([ -2.0, -1.0, 0.0, 1.0, 2.0,], [ "-2", "-1", "0", "1", "2"])
-        ax2.set_xlabel("Contour Length", fontsize = 10)
-        ax2.set_ylabel("Velocities", fontsize = 10)
-        ax2.legend()
-        ax2.set_box_aspect(1)
+        # fig2, ax2 = plt.subplots(**default_subplot_settings)
+        # ax2.scatter(self.distance, self.vx_list, color = "r", s=2, label="V_x")
+        # ax2.scatter(self.distance, self.vy_list, color = "b", s=2, label="V_y")
+        # ax1.set_xlim([-5.0, 15.0])
+        # # ax2.set_ylim([-40000,20000])
+        # # ax.tick_params(axis='both', which='both', )
+        # # ax1.set_xticks([ 0.0, np.pi/2., np.pi, 3.*np.pi/2., 2*np.pi], ["0", r"$\frac{\pi}{2}$", r"$\pi$", r"$\frac{3\pi}{2}$", r"$2\pi$"])
+        # # ax1.set_yticks([ -2.0, -1.0, 0.0, 1.0, 2.0,], [ "-2", "-1", "0", "1", "2"])
+        # ax2.set_xlabel("Contour Length", fontsize = 10)
+        # ax2.set_ylabel("Velocities", fontsize = 10)
+        # ax2.legend()
+        # ax2.set_box_aspect(1)
 
 
-        name2 = f"Figures/{len(self.cp)}/vpm_velocities_plot_{len(self.cp)}_segments.png"
-        os.makedirs(os.path.dirname(name2), exist_ok=True)
-        fig2.savefig(name2, format='png')
+        # name2 = f"Figures/{len(self.cp)}/vpm_velocities_plot_{len(self.cp)}_segments.png"
+        # os.makedirs(os.path.dirname(name2), exist_ok=True)
+        # fig2.savefig(name2, format='png')
              
 
 

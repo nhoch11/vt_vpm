@@ -184,9 +184,14 @@ class cylinder:
         self.z_surface = np.array([self.zeta_to_z(zeta) for zeta in self.zeta_surface])
        
         self.d_z_list = []
-        # for i in range(len(self.thetas)):
+        for i in range(len(self.z_surface)-1):
 
-            # appellian += self.d_theta_list[i]*(integrand[i] + integrand[(i+1) %len(integrand)])
+            self.d_z_list.append(abs(self.z_surface[i+1] - self.z_surface[i]))
+
+        if self.ofs:
+            self.d_z_list.append(2.*offset)
+        else:
+            self.d_z_list.append(self.d_z_list[0])
 
         self.Rz = 2.0 # should probably calculate this based on the max and min real of z_surface
         self.z_contour = self.Rz*np.exp(1j*self.thetas_chi)
@@ -195,6 +200,9 @@ class cylinder:
               # generate_VPM_points = True
         if generate_VPM_points:
             self.generate_vpm_points()
+
+        self.h = 1.0e-5
+        self.surface_offset = 1.0e-15
 
 
     def generate_vpm_points(self):
@@ -206,7 +214,7 @@ class cylinder:
             self.CL = 2.*np.pi*( (np.sin(self.alpha_rad) + y0*np.cos(self.alpha_rad)/np.sqrt(R**2 - y0**2) ) /
                             (1. + x0 / (np.sqrt(R**2 - y0**2) - x0) ))
             # print("CL mapping = ", self.CL)
-            # eq 119 phillips
+             # eq 119 phillips
             self.chord = 4.0*(self.radius**2 - self.zeta_0.imag**2)/(np.sqrt(self.radius**2 - self.zeta_0.imag**2) - self.zeta_0.real)
 
         # If nearly sharp, the singularity will be at or nearly on the zeta surface
@@ -259,8 +267,7 @@ class cylinder:
             stag_pt_z = self.zeta_to_z(stag_pt_chi+self.zeta_0)
 
         vpm_points = np.column_stack((z_surface_vpm.real, z_surface_vpm.imag))
-
-
+        
         self.vpm_points_unshifted = vpm_points.copy()
 
         # shift points
@@ -827,6 +834,61 @@ class cylinder:
 
         
         return appellian
+    
+
+    def calc_appellian_offset_in_z(self, gamma, type_of_integration, progress_bar = False):
+
+        print("calculating appellian offset in the z plane")
+
+        h = self.h
+
+        appellian = 0
+
+        offset_from_surface = self.surface_offset
+
+
+        if type_of_integration == "trapezoidal":
+
+            integrand = []
+
+            appellian = 0.
+
+
+            # print(len(thetas))
+            if progress_bar == True:
+                iterator = tqdm(enumerate(self.z_surface), total = len(self.z_surface), desc = "Calculating Appellian offset from surface in z plane, num_panels = "+str(len(self.thetas)))
+            else: 
+                iterator = enumerate(self.z_surface)
+        
+            for i, z_point in iterator:
+
+                z_normal = self.calc_z_normal_from_zeta_point(self.z_to_zeta(z_point)) # normal direction at this point
+                z_offset = z_point + z_normal*offset_from_surface
+                z_offset_plus_h = z_offset + z_normal*h
+                V  = self.calc_omega_z(gamma, self.z_to_zeta(z_offset))        # velocity offset a small amount from surface in z plane
+                V1 = self.calc_omega_z(gamma, self.z_to_zeta(z_offset_plus_h)) # velocity offset by h in radial direction from circle in z plane
+                integrand_i = -(1./32.)*((np.linalg.norm(V1)**4 - np.linalg.norm(V)**4)/h)
+                integrand.append(integrand_i)
+            
+
+            for i in range(len(self.z_surface)):
+
+                appellian += self.d_z_list[i]*(integrand[i] + integrand[(i+1) %len(integrand)])/2.
+
+
+            # print("appellian real part = ", np.real(appellian))
+            # print("appellian imag part = ", np.imag(appellian))
+            
+            appellian = np.real(appellian)
+            
+
+        else: 
+            print("calc_appellian_offset_in_z only does trapezoidal. \n The given type was ", type_of_integration, ".  Quitting")
+            sys.exit()
+
+
+        
+        return appellian
 
 
     
@@ -986,6 +1048,44 @@ class cylinder:
         # z_tangent = [tangent.real/mag, tangent.imag/mag]
 
         z_normal = [tangent.imag/mag, -tangent.real/mag]
+
+        return z_normal
+    
+    def calc_z_normal_from_zeta_point(self, zeta_point):
+
+        # now move to the zeta plane.  the position is now zeta = R_e^i theta_chi + zeta_0
+        # zeta_point = self.radius*np.exp(1j*theta_chi) + self.zeta_0
+
+        chi_point = zeta_point - self.zeta_0
+
+        theta_chi = np.arctan2(chi_point.imag, chi_point.real)
+
+        # move our zeta evaluation point to the z plane
+        z_point = self.zeta_to_z(zeta_point)
+
+        # calculate the theta defining the evaluation point in z
+        theta_z = np.arctan2(z_point.imag, z_point.real)
+
+        # calculate d z_surf / d theta_chi
+        tangent = 1j*self.radius*np.exp(1j*theta_chi)*(1-(self.C**2/((self.radius*np.exp(1j*theta_chi) + self.zeta_0)**2)))
+        
+        mag = np.sqrt(tangent.real**2 + tangent.imag**2) 
+
+        # alternative ways to calc tangent
+        # tangent_alternative = (1 - (self.radius**2)/(zeta_point-self.zeta_0)**2)/(1 - (self.C**2)/(zeta_point**2))
+        # tangent_alternative2 = self.calc_omega_z(0., zeta_point)
+        # mag_alt = np.sqrt(tangent_alternative.real**2 + tangent_alternative.imag**2) 
+        # mag_alt2 = np.sqrt(tangent_alternative2.real**2 + tangent_alternative2.imag**2) 
+
+        # print("z_tangent method 1", tangent/mag)
+        # print("z_tangent method 2", tangent_alternative2/mag_alt)
+        # print("z_tangent method 3", tangent_alternative3/mag_alt2)
+
+
+        # z_tangent = [tangent.real/mag, tangent.imag/mag]
+
+        # z_normal = [tangent.imag/mag, -tangent.real/mag]
+        z_normal = tangent.imag/mag - 1j*(tangent.real/mag)
 
         return z_normal
 
