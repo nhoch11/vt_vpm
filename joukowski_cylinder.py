@@ -276,6 +276,8 @@ class cylinder:
         vpm_points[:,0] = vpm_points[:,0] - shift_x
         # print("vpm_points shifted x:\n", vpm_points)
 
+        # ensure the last point is exactly the same as the first point
+        vpm_points[-1,:] = vpm_points[0,:]
 
         # rescale 
         rescale = False

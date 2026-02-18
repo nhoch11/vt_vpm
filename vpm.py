@@ -15,8 +15,9 @@ from numba import njit
 np.set_printoptions(formatter={'float': lambda x: f" {x:.16e}" if x >= 0 else f"{x:.16e}"})
 
 @njit
-def calc_A_matrix_numba(points, l_k, cp):
-    print("\ncalculating A and P matrices")
+def calc_A_matrix_numba(points, l_k, cp, verbose):
+    
+    if (verbose): print("\ncalculating A and P matrices")
     n = points.shape[0]
     A = np.zeros((n, n), dtype=np.float64)
     P_matrices = np.zeros((n, n, 2, 2), dtype=np.float64)
@@ -65,7 +66,8 @@ def calc_A_matrix_numba(points, l_k, cp):
     # Boundary condition row
     A[n-1, 0] = 1.0
     A[n-1, n-1] = 1.0
-    print("done")
+
+    if (verbose): print("done")
     return A, P_matrices
 
 
@@ -104,7 +106,7 @@ def calc_P_numba(points, l_k, j, point):
 
 class VPM:
 
-    def __init__(self, points, v_inf, alpha_deg):
+    def __init__(self, points, v_inf, alpha_deg, verbose=False):
         
         self.points = points
         self.n = len(self.points[:,0])
@@ -116,10 +118,12 @@ class VPM:
         # self.chord = 1.0
         # print("chord = ",self.chord)
 
-        self.surface_offset = 1.0e-1
+        self.surface_offset = 1.0e-10
         self.h = 1.0e-5
         
         self.at_points = False
+
+        self.verbose = verbose
 
 
 
@@ -277,7 +281,7 @@ class VPM:
 
     # assemble A matrix
     def calc_A_matrix(self):
-        print("\nbuilding A matrix")
+        if self.verbose: print("\nbuilding A matrix")
         # initialize
         self.A = np.zeros((self.n,self.n))
         # j, cpi, 2,2
@@ -309,7 +313,7 @@ class VPM:
         # set first and last element of last row to 1
         self.A[self.n-1,0]        = 1.0
         self.A[self.n-1,self.n-1] = 1.0
-        print("done")
+        if self.verbose: print("done")
 
         # print("A matrix row 0 \n", self.A[0,:])
 
@@ -331,14 +335,14 @@ class VPM:
 
     # function to solve [A]gamma = b
     def solve_for_gamma(self):
-        print("solving for gamma")
+        if self.verbose: print("solving for gamma")
         # solve for gamma
         self.gamma = np.linalg.solve(self.A, self.b)
-        print("done")
+        if self.verbose: print("done")
         residual = np.matmul(self.A, self.gamma) - self.b
         # print("Residuals:", residual)
         residual_norm = np.linalg.norm(residual)
-        print("Residual norm:", residual_norm)
+        if self.verbose: print("Residual norm:", residual_norm)
 
 
     # function to get velocity at any point (except inside the airfoil)
@@ -459,10 +463,10 @@ class VPM:
                 dist = dist_vert - 0.5*self.l_k[j]
             self.distance.append(dist)
 
-        self.appellian_numerical = appellian
+        self.appellian_numerical = float(appellian)
 
         # self.appellian_numerical = appellian
-        print("appellian = ", self.appellian_numerical)
+        if self.verbose: print("appellian = ", self.appellian_numerical)
 
         # apply_plot_settings()
         # fig, ax1 = plt.subplots(**default_subplot_settings)
@@ -566,7 +570,7 @@ class VPM:
         self.calc_l_k()
 
         # self.calc_A_matrix()
-        self.A, self.P_matrices = calc_A_matrix_numba(self.points, self.l_k, self.cp)
+        self.A, self.P_matrices = calc_A_matrix_numba(self.points, self.l_k, self.cp, self.verbose)
 
         self.calc_b_vector()
         self.solve_for_gamma()
