@@ -16,7 +16,7 @@ start_time = time.time()
 num_doubles = 11
 
 fd_step = 1.0e-5
-surface_offset = 1e-5
+surface_offset = 1e-2
 
 zeta_clustering = "even"
 D = 0.01
