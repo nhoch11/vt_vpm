@@ -59,4 +59,4 @@ print("gamma total = ", vpm.gamma_total)
 
 end_time = time.time()
 hrs_elapsed = (end_time - start_time)/3600.
-print("Grid Convergence Study executed in ", hrs_elapsed, " hours.")
+print("executed in ", hrs_elapsed, " hours.")

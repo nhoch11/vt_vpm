@@ -13,12 +13,12 @@ from tqdm import tqdm
 
 start_time = time.time()
 
-num_doubles = 12
+num_doubles = 10
 
-fd_step = 1.0e-5
+fd_step = 1.0e-8
 surface_offset = 1e-15
 
-zeta_clustering = "mirrored_cosine"
+zeta_clustering = "even"
 D = 0.01
 zeta_0 = -0.09 + 1j*0.01
 radius = 1.0
@@ -36,14 +36,17 @@ print("CL_Joukowski = ", CL_joukowski)
 appellian_jouk_list = []
 appellian_jouk_offset_list = []
 appellian_vpm_list = []
+appellian_vpm_analytic_list = []
 appellian_vpm_error_list = []
+appellian_vpm_analytic_error_list = []
 appellian_offset_error_list = []
 appellian_vpm_vs_offset_error_list = []
 points_list = []
 
-for i in range(1,num_doubles):
+for i in range(1,num_doubles+1):
     n = 10*2**i
     points_list.append(n)
+    print("\n ----------------------")
     print("i = ", i)
     print("n = ", n)
     jouk_vpm = cylinder(D, zeta_0, alpha_rad, v_inf, radius, n, theta_stag, zeta_clustering, False, 0.0, True, False)
@@ -51,6 +54,7 @@ for i in range(1,num_doubles):
     jouk_vpm.surface_offset = surface_offset
 
     vpm = VPM(jouk_vpm.vpm_points, v_inf, np.rad2deg(alpha_rad))
+    print("vpm chord = ", vpm.chord)
     vpm.h = fd_step
     vpm.surface_offset = surface_offset
     vpm.run()
@@ -60,8 +64,12 @@ for i in range(1,num_doubles):
     vpm.calc_appellian_numerical("trapezoidal", True)
     appellian_vpm_list.append(vpm.appellian_numerical)
 
+    vpm.calc_appellian_numerical_with_analytic_derivatives("trapezoidal", True)
+    appellian_vpm_analytic_list.append(vpm.appellian_numerical_with_analytic_derivatives)
+    
     ind = i - 1 # because i starts as 1
     appellian_vpm_error_list.append(100.*np.abs(appellian_vpm_list[ind]-appellian_jouk_list[ind])/appellian_jouk_list[ind])
+    appellian_vpm_analytic_error_list.append(100.*np.abs(appellian_vpm_analytic_list[ind]-appellian_jouk_list[ind])/appellian_jouk_list[ind])
     appellian_offset_error_list.append(100.*np.abs(appellian_jouk_offset_list[ind]-appellian_jouk_list[ind])/appellian_jouk_list[ind])
     appellian_vpm_vs_offset_error_list.append(100.*np.abs(appellian_vpm_list[ind]-appellian_jouk_offset_list[ind])/appellian_jouk_offset_list[ind])
 
@@ -72,10 +80,11 @@ apply_plot_settings()
 
 fig1, ax1 = plt.subplots(**default_subplot_settings)
 
-ax1.plot(points_list, appellian_jouk_list, color='k', linestyle = "-",label = "Jouk")  
-ax1.plot(points_list, appellian_jouk_offset_list, color='k', linestyle = "-.", label = "Jouk-Offset")  
-ax1.plot(points_list, appellian_vpm_list, color='k', linestyle = ":", label = "VPM-Offset")  
-ax1.legend(loc='lower right', fontsize = 8) #, bbox_to_anchor=(1.01, 1.01))
+ax1.plot(points_list, appellian_jouk_list, color='k', linestyle = "-", linewidth = 0.8, label = "Jouk")  
+# ax1.plot(points_list, appellian_jouk_offset_list, color='k', linestyle = "-.", linewidth = 0.8,  label = "Jouk-Offset")  
+ax1.plot(points_list, appellian_vpm_analytic_list, color='r', linestyle = "-", linewidth = 0.8,  label = "VPM-Analytic")  
+ax1.plot(points_list, appellian_vpm_list, color='b', linestyle = "--", linewidth = 0.8,  label = "VPM-Offset,FD")  
+ax1.legend(loc='lower right', fontsize = 6) #, bbox_to_anchor=(1.01, 1.01))
 # ax1.set_ylim([0., 10000])
 ax1.set_xlabel("number of points", fontsize = 10)
 ax1.set_ylabel(rf"Appellian", fontsize = 10)
@@ -107,8 +116,9 @@ fig2.savefig(f"figures/compare_vpm_and_jouk_appellian/appellian_offset_error_zet
 
 fig3, ax3 = plt.subplots(**default_subplot_settings)
 
-ax3.plot(points_list, appellian_vpm_error_list, color='k', linestyle = "-",label = "Jouk")  
-# ax1.legend(loc='lower right', fontsize = 8) #, bbox_to_anchor=(1.01, 1.01))
+ax3.plot(points_list, appellian_vpm_error_list, color='k', linestyle = "-",label = "VPM-Offset")  
+ax3.plot(points_list, appellian_vpm_analytic_error_list, color='k', linestyle = "--",label = "VPM-Analytic")  
+ax3.legend(loc='lower right', fontsize = 6) #, bbox_to_anchor=(1.01, 1.01))
 # ax1.set_ylim([0., 10000])
 ax3.set_xlabel("number of points", fontsize = 10)
 ax3.set_ylabel(rf"appellian abs percent error", fontsize = 10)
@@ -138,9 +148,11 @@ fig4.savefig(f"figures/compare_vpm_and_jouk_appellian/appellian_vpm_vs_offset_er
 appellian_jouk_list_clean = [float(item) for item in appellian_jouk_list]
 appellian_jouk_offset_list_clean = [float(item) for item in appellian_jouk_offset_list]
 appellian_vpm_list_clean = [float(item) for item in appellian_vpm_list]
+appellian_vpm_analytic_list_clean = [float(item) for item in appellian_vpm_analytic_list]
 
 appellian_offset_error_list_clean = [float(item) for item in appellian_offset_error_list]
 appellian_vpm_error_list_clean = [float(item) for item in appellian_vpm_error_list]
+appellian_vpm_analytic_error_list_clean = [float(item) for item in appellian_vpm_analytic_error_list]
 appellian_vpm_vs_offset_error_list_clean = [float(item) for item in appellian_vpm_vs_offset_error_list]
 
 metadata = [["zeta clustering = ", zeta_clustering],
@@ -157,8 +169,10 @@ df = pd.DataFrame({
     "appellian_jouk": appellian_jouk_list_clean,
     "appellian_jouk_offset": appellian_jouk_offset_list_clean,
     "appellian_vpm_offset": appellian_vpm_list_clean,
+    "appellian_vpm_analytic": appellian_vpm_analytic_list_clean,
     "appellian_jouk_offset_error": appellian_offset_error_list_clean,
     "appellian_vpm_error": appellian_vpm_error_list_clean,
+    "appellian_vpm_analytic_error": appellian_vpm_analytic_error_list_clean,
     "appellian_vpm_vs_offset_error": appellian_vpm_vs_offset_error_list_clean,})
 
 meta_df = pd.DataFrame(metadata, columns=["",""])
