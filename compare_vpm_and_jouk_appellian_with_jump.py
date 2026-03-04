@@ -13,12 +13,12 @@ from tqdm import tqdm
 
 start_time = time.time()
 
-num_doubles = 12
+num_doubles = 9
 
 fd_step = 1.0e-5
-surface_offset = 1e-15
+surface_offset = 0.0
 
-zeta_clustering = "mirrored_cosine"
+zeta_clustering = "even"
 D = 0.01
 zeta_0 = -0.09 + 1j*0.01
 radius = 1.0
@@ -57,7 +57,7 @@ for i in range(1,num_doubles):
     
     appellian_jouk_list.append(jouk_vpm.calc_appellian_line_integral(gamma, "trapezoidal", True))
     appellian_jouk_offset_list.append(jouk_vpm.calc_appellian_offset_in_z(gamma, "trapezoidal", True))
-    vpm.calc_appellian_numerical("trapezoidal", True)
+    vpm.calc_appellian_numerical("trapezoidal", True, with_jump=True)
     appellian_vpm_list.append(vpm.appellian_numerical)
 
     ind = i - 1 # because i starts as 1
@@ -84,7 +84,7 @@ ax1.set_yscale("log")
 
 ax1.set_box_aspect(1)
 
-fig1.savefig(f"figures/compare_vpm_and_jouk_appellian/appellian_values_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}.png", format='png')
+fig1.savefig(f"figures/compare_vpm_and_jouk_appellian_with_jump/appellian_values_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_fd_step{fd_step:.1e}.png", format='png')
 # fig1.savefig(f"results/{input_name}_integrand_fixed_gamma={fixed_gamma:.3f}_{grid.num_panels}_segments.svg", format='svg')
 # fig1.savefig(f"results/{input_name}_integrand_fixed_gamma={fixed_gamma:.3f}_{grid.num_panels}_segments.pdf", format='pdf')
 
@@ -101,7 +101,7 @@ ax2.set_yscale("log")
 
 ax2.set_box_aspect(1)
 
-fig2.savefig(f"figures/compare_vpm_and_jouk_appellian/appellian_offset_error_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}.png", format='png')
+fig2.savefig(f"figures/compare_vpm_and_jouk_appellian_with_jump/appellian_offset_error_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_fd_step{fd_step:.1e}.png", format='png')
 
 
 
@@ -117,7 +117,7 @@ ax3.set_yscale("log")
 
 ax3.set_box_aspect(1)
 
-fig3.savefig(f"figures/compare_vpm_and_jouk_appellian/appellian_vpm_error_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}.png", format='png')
+fig3.savefig(f"figures/compare_vpm_and_jouk_appellian_with_jump/appellian_vpm_error_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_fd_step{fd_step:.1e}.png", format='png')
 
 
 fig4, ax4 = plt.subplots(**default_subplot_settings)
@@ -132,7 +132,7 @@ ax4.set_yscale("log")
 
 ax4.set_box_aspect(1)
 
-fig4.savefig(f"figures/compare_vpm_and_jouk_appellian/appellian_vpm_vs_offset_error_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}.png", format='png')
+fig4.savefig(f"figures/compare_vpm_and_jouk_appellian_with_jump/appellian_vpm_vs_offset_error_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_fd_step{fd_step:.1e}.png", format='png')
 
 # Save data to an excel file
 appellian_jouk_list_clean = [float(item) for item in appellian_jouk_list]
@@ -163,7 +163,7 @@ df = pd.DataFrame({
 
 meta_df = pd.DataFrame(metadata, columns=["",""])
 
-with pd.ExcelWriter(f"output_files/compare_vpm_and_jouk_appellian/appelliean_values_and_error_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}.xlsx", engine="openpyxl") as writer:
+with pd.ExcelWriter(f"output_files/compare_vpm_and_jouk_appellian_with_jump/appelliean_values_and_error_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_fd_step={fd_step:.1e}.xlsx", engine="openpyxl") as writer:
     meta_df.to_excel(writer, index=False, header=False, startrow=0)
     df.to_excel(writer, index=False, startrow=len(meta_df) + 1)
 

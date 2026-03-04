@@ -219,7 +219,7 @@ class cylinder:
 
         # If nearly sharp, the singularity will be at or nearly on the zeta surface
         # 11/17/2025,  I think this is for the case when I specify an exactly sharp airfoil.
-        if self.D <= 1.e-10:
+        if self.D <= 1.0e-10:
         
             # find the index where theta_sing should go                    
             if abs(self.theta_sing - self.theta_stag_chi_rad) > 1.e-14:
@@ -255,8 +255,17 @@ class cylinder:
             stag_pt_z = self.zeta_to_z(stag_pt_chi+self.zeta_0)
             
         else:
-            # generate vpm grid centered about a specified theta_stag_aft
-            thetas_vpm = np.linspace(0,2*np.pi, self.num_panels+1)
+
+            if self.clustering == "even":
+                # generate vpm grid centered about a specified theta_stag_aft
+                thetas_vpm = np.linspace(0,2*np.pi, self.num_panels+1)
+                print("len thetas = ", np.shape(thetas_vpm))
+            elif self.clustering == "mirrored_cosine":
+                x = np.linspace(0., np.pi, (self.num_panels//2)+1)
+                thetas_half = 0.5*(1- np.cos(x))
+                thetas_vpm = np.pi*np.concatenate((thetas_half[:-1], 2 - thetas_half[::-1]))
+                print("len thetas = ", np.shape(thetas_vpm))
+
             thetas_chi_vpm = thetas_vpm + self.theta_stag_chi_rad
             chi_surface_vpm = self.radius*np.exp(1j*thetas_chi_vpm)
             zeta_surface_vpm = chi_surface_vpm + self.zeta_0

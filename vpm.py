@@ -6,6 +6,8 @@ import os
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Arc
+from matplotlib.patches import FancyArrowPatch
 from tabulate import tabulate
 from plot_settings import apply_plot_settings, default_subplot_settings
 from concurrent.futures import ThreadPoolExecutor
@@ -110,15 +112,17 @@ class VPM:
         
         self.points = points
         self.n = len(self.points[:,0])
+        self.num_panels = self.n - 1
         self.v_inf = v_inf
         self.alpha_deg = alpha_deg
         self.alpha_rad = np.radians(self.alpha_deg)
+        self.v_inf_vec = np.array((self.v_inf*np.cos(self.alpha_rad), self.v_inf*np.sin(self.alpha_rad)))
 
         self.chord = max(self.points[:,0]) - min(self.points[:,0])
         # self.chord = 1.0
         # print("chord = ",self.chord)
 
-        self.surface_offset = 1.0e-10
+        self.surface_offset = 1.0e-14
         self.h = 1.0e-5
         
         self.at_points = False
@@ -159,19 +163,6 @@ class VPM:
             self.alpha_step_deg = json_vals["operating"]["alpha_increment[deg]"]
 
 
-    # function to read in json geometry inputs
-    def read_in_alpha_sweep(self, input_file):
-
-        # read json
-        json_string=open(input_file).read()
-        json_vals = json.loads(json_string)
-
-        # assign values from json
-        self.airfoil_code = json_vals["geometry"]["airfoil"]
-        self.alpha_start_deg = json_vals["alpha_sweep"]["start[deg]"]
-        alpha_end_deg = json_vals["alpha_sweep"]["end[deg]"]
-        alpha_step_deg = json_vals["alpha_sweep"]["increment[deg]"]
-        self.alpha_list_deg = np.linspace(self.alpha_start_deg, alpha_end_deg, int((alpha_end_deg-self.alpha_start_deg)/alpha_step_deg+1))
 
 
     # calculate control points
@@ -179,6 +170,7 @@ class VPM:
 
         self.cp = np.zeros((self.n - 1, 2))
         self.cp_norm = np.zeros((self.n - 1, 2))
+        self.cp_tangent = np.zeros((self.n - 1, 2))
         self.cp_offset = np.zeros((self.n - 1, 2))
         self.vert_norm = np.zeros((self.n - 1, 2))
         self.points_offset = np.zeros((self.n - 1, 2))
@@ -191,10 +183,11 @@ class VPM:
             norm_x = -(self.points[i+1,1] - self.points[i,1])
             norm_y = (self.points[i+1,0] - self.points[i,0])
             norm = np.sqrt(norm_x**2 + norm_y**2)
-            self.cp_norm[i] = [norm_x/norm, norm_y/norm]
+            self.cp_norm[i] = np.array([norm_x/norm, norm_y/norm])
+
+            self.cp_tangent[i] = np.array([norm_y/norm, -norm_x/norm])
 
             
-
             self.cp_offset[i] = self.cp[i] + self.surface_offset*self.cp_norm[i]
             
             b = (self.cp_norm[i] + self.cp_norm[i-1])
@@ -344,9 +337,58 @@ class VPM:
         residual_norm = np.linalg.norm(residual)
         if self.verbose: print("Residual norm:", residual_norm)
 
+        self.gamma_at_cp = np.zeros(self.num_panels)
+        self.V_at_cp = np.empty_like(self.cp)
+        for i in range(self.num_panels):
+            self.gamma_at_cp[i] = (self.gamma[i][0] + self.gamma[i+1][0])/2
+
+            # local freestream component in panel coords
+            velocity_inf = np.dot(self.v_inf_vec, self.cp_tangent[i])
+            
+            # velocity at cp in global coords from book
+            v_book = (self.points[i+1]-self.points[i])*(velocity_inf + self.gamma_at_cp[i]/2)/self.l_k[i]
+            v_ind_book = (self.points[i+1]-self.points[i])*(self.gamma_at_cp[i]/2)/self.l_k[i]
+            
+            # slightly offset
+            v_slightly_offset = self.calc_velocity_at_point(self.cp_offset[i], i)
+            P = self.calc_P(i, self.cp_offset[i])
+            v_self_ind_offset = np.matmul(P, [self.gamma[i], self.gamma[i+1]])
+
+            # exactly at cp, using p matrices
+            v_cp = self.calc_velocity_at_control_point(i)
+            P_cp = self.P_matrices[i, i]
+            v_self_ind_cp = np.matmul(P_cp, [self.gamma[i], self.gamma[i+1]])
+
+            # exactly at cp, using p matrices
+            v_cp_version2 = self.calc_velocity_at_control_point_version2(i)
+            v_panel_tangent = self.gamma_at_cp[i]/2
+            v_panel_normal = -(self.gamma[i+1]-self.gamma[i])/(2*np.pi)
+            v_panel = np.array([v_panel_tangent, np.ravel(v_panel_normal)[0]])
+            transform = np.array([[self.points[i+1][0]-self.points[i][0], -(self.points[i+1][1]-self.points[i][1])],
+                                    [self.points[i+1][1]-self.points[i][1],   self.points[i+1][0]-self.points[i][0] ]])
+            v_self_ind_cp_version2 =  np.matmul(transform, v_panel)/self.l_k[i]
+
+
+            # print(" v_inf component = ", velocity_inf, "   v_induced = ", self.gamma_at_cp[i]/2, "   v_total = ", np.linalg.norm(self.V_at_cp[i]), "   v_total_numerical = ", np.linalg.norm(velocity_at_point), "   v_total_numerical_cp = ", np.linalg.norm(velocity_at_cp))
+            # print(" v_self_ind (book) = ", np.linalg.norm((self.points[i+1]-self.points[i])*(self.gamma_at_cp[i]/2)/self.l_k[i]), "   v_self_ind (slightly offset) = ", np.linalg.norm(v_self_ind_offset), "   v_self_ind (at cp) = ", np.linalg.norm(v_self_ind_cp))
+            # print("  ------- v (book) = ", np.linalg.norm(v_book), "   v slightly offset = ", np.linalg.norm(v_slightly_offset), "   v using P = ", np.linalg.norm(v_cp), "-----------\n")
+            print("\n  ----------  Panel ", i, "  ------------")
+            print(f"  v_self_ind            (book) =   {v_ind_book[0]: 20.16f}   {v_ind_book[1]: 20.16f}    v dot t_vec = {np.dot(v_ind_book, self.cp_tangent[i])/np.linalg.norm(v_ind_book): 20.16f}")
+            print(f"  v_self_ind (slightly offset) =   {v_self_ind_offset[0][0]: 20.16f}   {v_self_ind_offset[1][0]: 20.16f}    v dot t_vec = {np.dot(v_self_ind_offset.ravel(), self.cp_tangent[i])/np.linalg.norm(v_self_ind_offset): 20.16f}")
+            print(f"  v_self_ind           (at cp) =   {v_self_ind_cp[0][0]: 20.16f}   {v_self_ind_cp[1][0]: 20.16f}    v dot t_vec = {np.dot(v_self_ind_cp.ravel(), self.cp_tangent[i])/np.linalg.norm(v_self_ind_cp): 20.16f}")
+            print(f"  v_self_ind       (version 2) =   {v_self_ind_cp_version2[0]: 20.16f}   {v_self_ind_cp_version2[1]: 20.16f}    v dot t_vec = {np.dot(v_self_ind_cp_version2.ravel(), self.cp_tangent[i])/np.linalg.norm(v_self_ind_cp_version2): 20.16f}")
+            
+            print(f"\n  v_total               (book) =   {v_book[0]: 20.16f}   {v_book[1]: 20.16f}    magnitude = {np.linalg.norm(v_book): 20.16f}  v dot t_vec = {np.dot(v_book, self.cp_tangent[i])/np.linalg.norm(v_book): 20.16f}")
+            print(f"  v_total    (slightly offset) =   {v_slightly_offset[0]: 20.16f}   {v_slightly_offset[1]: 20.16f}    magnitude = {np.linalg.norm(v_slightly_offset): 20.16f}  v dot t_vec = {np.dot(v_slightly_offset.ravel(), self.cp_tangent[i])/np.linalg.norm(v_slightly_offset): 20.16f}")
+            print(f"  v_total              (at cp) =   {v_cp[0]: 20.16f}   {v_cp[1]: 20.16f}    magnitude = {np.linalg.norm(v_cp): 20.16f}  v dot t_vec = {np.dot(v_cp.ravel(), self.cp_tangent[i])/np.linalg.norm(v_cp): 20.16f}")
+            print(f"  v_total          (version 2) =   {v_cp_version2[0]: 20.16f}   {v_cp_version2[1]: 20.16f}    magnitude = {np.linalg.norm(v_cp_version2): 20.16f}  v dot t_vec = {np.dot(v_cp_version2.ravel(), self.cp_tangent[i])/np.linalg.norm(v_cp_version2): 20.16f}")
+            print("\n")
+
+        for i in range(self.num_panels):
+            self.V_at_cp[i] = self.calc_velocity_at_control_point(i)
 
     # function to get velocity at any point (except inside the airfoil)
-    def calc_velocity_at_point(self, point):
+    def calc_velocity_at_point(self, point, i = 0):
 
         # # initialize
         # velocity = np.zeros((2,1))
@@ -358,18 +400,142 @@ class VPM:
         for j in range(0,self.n - 1):
 
             # calc P matrix for influence of jth panel, ith control point
-            P = self.calc_P(j, point)
+            P_offset = self.calc_P(j, point)
             # P = calc_P_numba(self.points, self.l_k, j, point)
 
             # P times gammas
-            result = np.matmul(P, [self.gamma[j], self.gamma[j+1]])
+            result = np.matmul(P_offset, [self.gamma[j], self.gamma[j+1]])
+
+            # if (j==i):
+            if (i==j): 
+                P_cp = self.P_matrices[j,i]
+                # print("\nP offset = ", P_offset[0,0], P_offset[0,1], P_offset[1,0], P_offset[1,1])
+                # print("    P cp = ", P_cp[0,0], P_cp[0,1], P_cp[1,0], P_cp[1,1])
+                result_cp = np.matmul(P_cp, [self.gamma[j], self.gamma[j+1]])
+                result_book = (self.points[j+1]-self.points[j])*(self.gamma_at_cp[i]/2)/self.l_k[i]
+                result_cp.flatten()
+                result.flatten()
+                # print("\n  self_ind book = ", result_book[0], result_book[1])
+                # print("self_ind offset = ", result[0][0], result[1][0])
+                # print(" self_ind at cp = ", result[0][0], result_cp[1][0])
+
 
             velocity += result.flatten()
 
         return velocity
 
+    # function to get velocity at a control point
+    def calc_velocity_at_control_point(self, i):
 
-    def calc_appellian_numerical(self, type_of_integration, progress_bar = False):
+        # # initialize
+        # velocity = np.zeros((2,1))
+        tangent = np.ravel(self.cp_tangent[i])
+        # add v_inf terms
+        velocity = np.dot(np.array((self.v_inf*np.cos(self.alpha_rad), self.v_inf*np.sin(self.alpha_rad))),tangent)*tangent
+
+        # for each panel
+        for j in range(0,self.n - 1):
+            if (i == j):
+                result = np.array(self.points[i+1]-self.points[i])*(self.gamma_at_cp[i]/2)/self.l_k[i]
+            else:
+                # calc P matrix for influence of jth panel, ith control point
+                P = self.P_matrices[j,i]
+
+                # P times gammas
+                result = np.dot(np.ravel(np.matmul(P, [self.gamma[j], self.gamma[j+1]])), tangent) * tangent
+                # result = (self.points[i+1]-self.points[i])*np.matmul(P, [self.gamma[j], self.gamma[j+1]])/self.l_k[i]
+
+            velocity += result
+
+        return velocity
+    
+    # function to get velocity at a control point
+    def calc_velocity_at_control_point_version2(self, i):
+
+        # # initialize
+        # velocity = np.zeros((2,1))
+
+        # add v_inf terms
+        velocity = np.array((self.v_inf*np.cos(self.alpha_rad), self.v_inf*np.sin(self.alpha_rad)))
+
+        # for each panel
+        for j in range(0,self.n - 1):
+            if (i == j):
+                v_panel_tangent = self.gamma_at_cp[i]/2
+                v_panel_normal = (self.gamma[i+1]-self.gamma[i])/(2*np.pi)
+                print(np.shape(v_panel_tangent))
+                print(np.shape(v_panel_normal))
+                v_panel = np.array([v_panel_tangent, np.ravel(v_panel_normal)[0]])
+                transform = np.array([[self.points[i+1][0]-self.points[i][0], -(self.points[i+1][1]-self.points[i][1])],
+                                     [self.points[i+1][1]-self.points[i][1],   self.points[i+1][0]-self.points[i][0] ]])
+                result = np.matmul(transform, v_panel)/self.l_k[i]
+            else:
+                # calc P matrix for influence of jth panel, ith control point
+                P = self.P_matrices[j,i]
+
+                # P times gammas
+                result = np.matmul(P, [self.gamma[j], self.gamma[j+1]]).flatten()
+                # result = (self.points[i+1]-self.points[i])*np.matmul(P, [self.gamma[j], self.gamma[j+1]])/self.l_k[i]
+
+            velocity += result
+
+        return velocity
+    
+    
+    # function to get velocity at a control point
+    def calc_velocity_at_control_point_analytic(self, i):
+
+        # add v_inf terms
+        velocity_inf = np.dot(np.array((self.v_inf*np.cos(self.alpha_rad), self.v_inf*np.sin(self.alpha_rad))), self.cp_tangent[i])
+
+        velocity = (self.points[i+1]-self.points[i])*(velocity_inf + self.gamma_at_cp[i]/2)/self.l_k[i]
+
+        return velocity.flatten()
+    
+    
+    def calc_velocity_at_control_point_with_jump(self, i):
+
+        # # initialize with v_inf terms
+        velocity_no_jump = np.array((self.v_inf*np.cos(self.alpha_rad), self.v_inf*np.sin(self.alpha_rad)))
+
+        # for each panel
+        for j in range(0,self.n - 1):
+
+            # calc P matrix for influence of jth panel, ith control point
+            P = self.P_matrices[j,i]
+
+            # P times gammas
+            result = np.matmul(P, [self.gamma[j], self.gamma[j+1]])
+            velocity_no_jump += result.flatten()
+
+        v_mag = np.sqrt(velocity_no_jump[0]**2 + velocity_no_jump[1]**2)
+
+        if (np.dot(velocity_no_jump, self.cp_tangent[i])< 0.0):
+            velocity = (self.points[i+1]-self.points[i])*(-v_mag + self.gamma_at_cp[i]/2)/self.l_k[i]
+            if np.sign(-v_mag + self.gamma_at_cp[i]/2) != np.sign(self.gamma_at_cp[i]):
+                print("\n WARNING: Velocity at cp (with jump) is in wrong direction. ")
+        else:
+            velocity = (self.points[i+1]-self.points[i])*( v_mag + self.gamma_at_cp[i]/2)/self.l_k[i]
+            if np.sign(v_mag + self.gamma_at_cp[i]/2) != np.sign(self.gamma_at_cp[i]):
+                print("\n WARNING: Velocity at cp (with jump) is in wrong direction. ")
+        
+
+        return velocity
+    
+    
+    def calc_velocity_at_control_point_faster(self, i):
+        velocity = np.array([self.v_inf*np.cos(self.alpha_rad),
+                            self.v_inf*np.sin(self.alpha_rad)])
+
+        gamma_pairs = np.column_stack((self.gamma[:-1], self.gamma[1:]))  # shape (n-1, 2)
+
+        # einsum: sum over j: P[j,i] @ gamma_pairs[j]
+        velocity += np.einsum('jik,jk->i', self.P_matrices[:self.n-1, i], gamma_pairs)
+
+        return velocity
+    
+
+    def calc_appellian_numerical(self, type_of_integration, progress_bar = False, with_jump=False):
 
         
         appellian = 0
@@ -396,7 +562,10 @@ class VPM:
                 self.V_offset_pts[j] = self.calc_velocity_at_point(self.points_offset[j])
             else:
                 # self.V_at_cp[j] = self.calc_velocity_at_control_point_faster(j)
-                self.V_offset_cp[j] = self.calc_velocity_at_point(self.cp_offset[j])
+                if (self.surface_offset < 1e-15):
+                    self.V_offset_cp[j] = self.calc_velocity_at_control_point(j,with_jump)
+                else:
+                    self.V_offset_cp[j] = self.calc_velocity_at_point(self.cp_offset[j])
 
         if progress_bar == True:
             iterator2 = tqdm(enumerate(self.cp), total = len(self.cp), desc = "calculating appellian"+str(len(self.cp)))
@@ -507,6 +676,80 @@ class VPM:
         # os.makedirs(os.path.dirname(name2), exist_ok=True)
         # fig2.savefig(name2, format='png')
              
+
+
+
+    def plot_velocity_at_control_points(self):
+        # calculate velocity at the control points
+        # self.V_at_cp = np.zeros((len(self.cp), 2))
+        # for i in range(len(self.cp)):
+        #     # self.V_at_cp[i] = self.calc_velocity_at_control_point(i)  
+        #     # self.V_at_cp[i] = self.calc_velocity_at_point(self.cp_offset[i])
+
+
+        apply_plot_settings()
+        fig, ax1 = plt.subplots(**default_subplot_settings)
+
+        ax1.plot(self.points[:,0], self.points[:,1], color='0.0', linestyle="-", linewidth = "0.1",zorder=0)  # Dash style 1
+        ax1.scatter(self.points[:,0], self.points[:,1], color='k', marker = "x", s=1, zorder=1)
+        ax1.scatter(self.cp[:,0], self.cp[:,1], color='r', marker = "x", s=1, zorder=1)
+        # plt.quiver(self.cp[:,0], self.cp[:,1], self.V_offset_cp[:,0], self.V_offset_cp[:,1], angles ='uv', color = "r", width = 0.003, headwidth=3, headlength=6, headaxislength=5)
+        plt.quiver(self.cp[:,0], self.cp[:,1], self.V_at_cp[:,0], self.V_at_cp[:,1], angles ='xy', scale_units='xy', scale=10*self.num_panels, color = "b", width = 0.002, headwidth=3, headlength=5, headaxislength=4,zorder=1)
+        plt.quiver(self.cp[:,0], self.cp[:,1], self.cp_norm[:,0], self.cp_norm[:,1], angles ='xy', scale_units='xy', scale=1*self.num_panels, color = "r", width = 0.002, headwidth=3, headlength=5, headaxislength=4,zorder=1)
+        # plt.quiver(self.cp[:,0], self.cp[:,1], self.V_at_cp[:,0], self.V_at_cp[:,1], angles ='uv', color = "r", width = 0.003, headwidth=3, headlength=6, headaxislength=5)
+        
+        # magnituded labels
+        self.V_mag = np.linalg.norm(self.V_at_cp, axis=1)
+
+        # print("gammas = ", self.gamma)
+        # gamma symbols
+        radius = self.chord/self.num_panels/2/50
+        for i in range(len(self.cp)):
+            x = self.cp[i,0]
+            y = self.cp[i,1]
+            sign = np.sign(self.gamma_at_cp[i])
+            if self.gamma_at_cp[i] >= 0:
+                theta1, theta2 = 60, 330
+                arrow_angle = 60
+            else:
+                theta1, theta2 = 30, 300
+                arrow_angle = 60
+
+            radius_i = radius*np.abs(self.gamma_at_cp[i])
+            arc = Arc((x,y), width=2*radius_i, height=2*radius_i, theta1=theta1, theta2=theta2, linewidth=0.6, color='g')
+            ax1.add_patch(arc)
+
+            arrow_x = x + radius_i*np.cos(np.deg2rad(arrow_angle)) 
+            arrow_y = y + sign*radius_i*np.sin(np.deg2rad(arrow_angle)) 
+            ax1.arrow(arrow_x, arrow_y, .001*radius_i, -sign*.001*radius_i, head_width=0.2*radius_i, head_length=0.2*radius_i,fc='g', ec='g', zorder=1)
+            # ax1.arrow(arrow_x, arrow_y, .001*radius_i, -sign*.001*radius_i, fc='g', ec='g', zorder=1)
+
+            ax1.text(self.cp[i,0], self.cp[i,1] - radius_i*1.2, rf"$\gamma$={self.gamma_at_cp[i]:.2f}", fontsize=4, ha="center", va="center", color="k",zorder=2)
+
+            # gamma at points
+            ax1.text(self.points[i,0], self.points[i,1] - radius_i*1.2, rf"$\gamma$={float(self.gamma[i]):.2f}", fontsize=4, ha="center", va="center", color="k",zorder=2)
+            
+            # magnitude label
+            ax1.text(self.cp[i,0], self.cp[i,1] + 1.1*radius_i, f"V={self.V_mag[i]:.2f}", fontsize=4, ha="center", va="center", color="k",zorder=2)
+        
+        ax1.text(self.points[-1,0], self.points[-1,1] - radius_i*1.2, rf"$\gamma$={float(self.gamma[-1]):.2f}", fontsize=4, ha="center", va="center", color="k",zorder=2)
+        
+        ax1.set_aspect('equal', adjustable='box')
+
+        ax1.set_xlim([-1.0, 4.0])
+        ax1.set_ylim([-2.0,2.0])
+        # ax.tick_params(axis='both', which='both', )
+        ax1.set_xticks([ -1.0, 0.0, 1.0, 2.0, 3.0, 4.0], ["-1", "0", "1", "2", "3", "4"])
+        ax1.set_yticks([ -2.0, -1.0, 0.0, 1.0, 2.0,], [ "-2", "-1", "0", "1", "2"])
+        plt.show()
+
+
+
+        # name2 = f"Figures/{len(self.cp)}/vpm_velocities_plot_{len(self.cp)}_segments.png"
+        # os.makedirs(os.path.dirname(name2), exist_ok=True)
+        # fig2.savefig(name2, format='png')
+
+
 
 
     def calc_total_gamma_and_CL(self):

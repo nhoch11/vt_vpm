@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 start_time = time.time()
 num_doubles = 8
-zeta_clustering = "even"
+zeta_clustering = "mirrored_cosine"
 D = 0.0
 zeta_0 = -0.09 + 1j*0.01
 radius = 1.0
@@ -62,7 +62,6 @@ for i in range(1,num_doubles):
 
 apply_plot_settings()
 
-print("offset = " ,vpm.offset)
 
 fig1, ax1 = plt.subplots(**default_subplot_settings)
 
