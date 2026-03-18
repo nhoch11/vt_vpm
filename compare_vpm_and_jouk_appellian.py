@@ -13,20 +13,21 @@ from tqdm import tqdm
 
 start_time = time.time()
 
-num_doubles = 10
+num_runs = 8
 
 fd_step = 1.0e-8
-surface_offset = 1e-15
+surface_offset = 1e-7
 
 zeta_clustering = "even"
 D = 0.01
 zeta_0 = -0.09 + 1j*0.01
-radius = 1.0
+radius = 1
 v_inf = 10.0
 alpha_deg = 5.0
 alpha_rad = np.radians(alpha_deg)
 
 gamma = 4*np.pi*v_inf*(np.sqrt(radius**2 - zeta_0.imag**2)*np.sin(alpha_rad) + zeta_0.imag*np.cos(alpha_rad))
+# gamma = 0
 print("gamma_k = ", gamma) 
 theta_stag = alpha_rad - np.arcsin(gamma/(4*np.pi*v_inf*radius))
 
@@ -43,7 +44,7 @@ appellian_offset_error_list = []
 appellian_vpm_vs_offset_error_list = []
 points_list = []
 
-for i in range(1,num_doubles+1):
+for i in range(1,num_runs+1):
     n = 10*2**i
     points_list.append(n)
     print("\n ----------------------")
@@ -74,16 +75,15 @@ for i in range(1,num_doubles+1):
     appellian_vpm_vs_offset_error_list.append(100.*np.abs(appellian_vpm_list[ind]-appellian_jouk_offset_list[ind])/appellian_jouk_offset_list[ind])
 
 
-
 apply_plot_settings()
 
 
 fig1, ax1 = plt.subplots(**default_subplot_settings)
 
 ax1.plot(points_list, appellian_jouk_list, color='k', linestyle = "-", linewidth = 0.8, label = "Jouk")  
-# ax1.plot(points_list, appellian_jouk_offset_list, color='k', linestyle = "-.", linewidth = 0.8,  label = "Jouk-Offset")  
-ax1.plot(points_list, appellian_vpm_analytic_list, color='r', linestyle = "-", linewidth = 0.8,  label = "VPM-Analytic")  
+ax1.plot(points_list, appellian_jouk_offset_list, color='0.4', linestyle = "--", linewidth = 0.8,  label = "Jouk-Offset,FD")  
 ax1.plot(points_list, appellian_vpm_list, color='b', linestyle = "--", linewidth = 0.8,  label = "VPM-Offset,FD")  
+ax1.plot(points_list, appellian_vpm_analytic_list, color='r', linestyle = "-", linewidth = 0.8,  label = "VPM-Analytic")  
 ax1.legend(loc='lower right', fontsize = 6) #, bbox_to_anchor=(1.01, 1.01))
 # ax1.set_ylim([0., 10000])
 ax1.set_xlabel("number of points", fontsize = 10)
@@ -93,7 +93,7 @@ ax1.set_yscale("log")
 
 ax1.set_box_aspect(1)
 
-fig1.savefig(f"figures/compare_vpm_and_jouk_appellian/appellian_values_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}.png", format='png')
+fig1.savefig(f"figures/compare_vpm_and_jouk_appellian/appellian_values_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}_FD_step={fd_step:.1e}.png", format='png')
 # fig1.savefig(f"results/{input_name}_integrand_fixed_gamma={fixed_gamma:.3f}_{grid.num_panels}_segments.svg", format='svg')
 # fig1.savefig(f"results/{input_name}_integrand_fixed_gamma={fixed_gamma:.3f}_{grid.num_panels}_segments.pdf", format='pdf')
 
@@ -110,7 +110,7 @@ ax2.set_yscale("log")
 
 ax2.set_box_aspect(1)
 
-fig2.savefig(f"figures/compare_vpm_and_jouk_appellian/appellian_offset_error_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}.png", format='png')
+fig2.savefig(f"figures/compare_vpm_and_jouk_appellian/appellian_offset_error_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}_FD_step={fd_step:.1e}.png", format='png')
 
 
 
@@ -127,7 +127,7 @@ ax3.set_yscale("log")
 
 ax3.set_box_aspect(1)
 
-fig3.savefig(f"figures/compare_vpm_and_jouk_appellian/appellian_vpm_error_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}.png", format='png')
+fig3.savefig(f"figures/compare_vpm_and_jouk_appellian/appellian_vpm_error_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}_FD_step={fd_step:.1e}.png", format='png')
 
 
 fig4, ax4 = plt.subplots(**default_subplot_settings)
@@ -142,7 +142,7 @@ ax4.set_yscale("log")
 
 ax4.set_box_aspect(1)
 
-fig4.savefig(f"figures/compare_vpm_and_jouk_appellian/appellian_vpm_vs_offset_error_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}.png", format='png')
+fig4.savefig(f"figures/compare_vpm_and_jouk_appellian/appellian_vpm_vs_offset_error_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}_FD_step={fd_step:.1e}.png", format='png')
 
 # Save data to an excel file
 appellian_jouk_list_clean = [float(item) for item in appellian_jouk_list]
@@ -161,6 +161,7 @@ metadata = [["zeta clustering = ", zeta_clustering],
             ["radius = ", radius],
             ["alpha[deg] = ", alpha_deg],
             ["V_inf = ", v_inf],
+            ["gamma = ", gamma],
             ["surface offset = ", surface_offset],
             ["fd step size = ", fd_step]]
 
@@ -177,7 +178,7 @@ df = pd.DataFrame({
 
 meta_df = pd.DataFrame(metadata, columns=["",""])
 
-with pd.ExcelWriter(f"output_files/compare_vpm_and_jouk_appellian/appelliean_values_and_error_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}.xlsx", engine="openpyxl") as writer:
+with pd.ExcelWriter(f"output_files/compare_vpm_and_jouk_appellian/appelliean_values_and_error_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}_FD_step={fd_step:.1e}.xlsx", engine="openpyxl") as writer:
     meta_df.to_excel(writer, index=False, header=False, startrow=0)
     df.to_excel(writer, index=False, startrow=len(meta_df) + 1)
 

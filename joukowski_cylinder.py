@@ -259,12 +259,12 @@ class cylinder:
             if self.clustering == "even":
                 # generate vpm grid centered about a specified theta_stag_aft
                 thetas_vpm = np.linspace(0,2*np.pi, self.num_panels+1)
-                print("len thetas = ", np.shape(thetas_vpm))
+                # print("len thetas = ", np.shape(thetas_vpm))
             elif self.clustering == "mirrored_cosine":
                 x = np.linspace(0., np.pi, (self.num_panels//2)+1)
                 thetas_half = 0.5*(1- np.cos(x))
                 thetas_vpm = np.pi*np.concatenate((thetas_half[:-1], 2 - thetas_half[::-1]))
-                print("len thetas = ", np.shape(thetas_vpm))
+                # print("len thetas = ", np.shape(thetas_vpm))
 
             thetas_chi_vpm = thetas_vpm + self.theta_stag_chi_rad
             chi_surface_vpm = self.radius*np.exp(1j*thetas_chi_vpm)
@@ -515,14 +515,15 @@ class cylinder:
         f = self.calc_f(gamma, r, theta)
         fbar = np.conj(f)
         df = self.calc_df_dr(gamma, r, theta)
-        # dfbar = np.conj(df)
+        dfbar = np.conj(df)
 
         g = self.calc_g(gamma, r, theta)
         gbar = np.conj(g)
         dg = self.calc_dg_dr(gamma, r, theta)
+        dgbar = np.conj(dg)
 
-        dw4_dr = ((4.*np.abs(f)**2)/(np.abs(g)**4))*(np.real(df*fbar) - ((np.abs(f)**2)/np.abs(g)**2)*np.real(dg*gbar))
-        # dw4_dr = f
+        # dw4_dr = ((4.*np.abs(f)**2)/(np.abs(g)**4))*(np.real(df*fbar) - ((np.abs(f)**2)/np.abs(g)**2)*np.real(dg*gbar))
+        dw4_dr = 2*(np.abs(f)**2*(f*dfbar + fbar*df)/np.abs(g)**4    -   np.abs(f)**4*(g*dgbar + gbar*dg)/np.abs(g)**6)
         
         integrand = -(self.radius/32.)*dw4_dr #/(self.v_inf**4)
         return integrand
