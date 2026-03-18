@@ -16,7 +16,7 @@ start_time = time.time()
 num_runs = 8
 
 fd_step = 1.0e-8
-surface_offset = 1e-7
+surface_offset = 1.0e-10
 
 zeta_clustering = "even"
 D = 0.01
