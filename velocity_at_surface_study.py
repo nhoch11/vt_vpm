@@ -37,14 +37,14 @@ n_list = [486]
 vals = [[] for _ in range(len(n_list))]
 derivatives = np.zeros(len(n_list))
 # n_list = [20]
-r_over_R = np.linspace(0.99, 1.03878, 501) # assumes R = 1
+r_over_R = np.linspace(0.99, 1.01, 501) # assumes R = 1
 v_over_V = np.zeros((len(n_list), len(r_over_R)))
 
 # analytic velocity at top of cylinder
 jouk = cylinder(D, zeta_0, alpha_rad, v_inf, radius, 1000, theta_stag, zeta_clustering, False, 0.0, True, False)
 
 num_analytic = 1000
-r_over_R_analytic = np.linspace(0.99, 1.03878, num_analytic) # assumes R = 1
+r_over_R_analytic = np.linspace(0.99, 1.01, num_analytic) # assumes R = 1
 v_over_V_analytic = np.zeros((len(r_over_R_analytic)))
 for i in range(len(r_over_R_analytic)):
     omega_zeta = jouk.calc_omega_zeta(0.0, zeta_0.real + r_over_R_analytic[i]*1j)
