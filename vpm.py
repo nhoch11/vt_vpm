@@ -131,6 +131,7 @@ def calc_A_matrix_and_derivative_P_matrices_numba(points, l_k, cp):
 
             dphi_dx = dn_dx*l_j*(g/(f**2 + g**2)) + (2.*n*dn_dx + 2.*s*ds_dx - ds_dx*l_j)*(-f/(f**2 + g**2))
             dphi_dy = dn_dy*l_j*(g/(f**2 + g**2)) + (2.*n*dn_dy + 2.*s*ds_dy - ds_dy*l_j)*(-f/(f**2 + g**2))
+            # if i ==j: print("j = ", j, "  dphi_dy = ", dphi_dy)
 
             dpsi_dx = 0.5*(low/hi)*(low*(2.*s*ds_dx + 2.*n*dn_dx) - hi*(2.*(s-l_j)*ds_dx + 2*n*dn_dx))/(low**2)
             dpsi_dy = 0.5*(low/hi)*(low*(2.*s*ds_dy + 2.*n*dn_dy) - hi*(2.*(s-l_j)*ds_dy + 2*n*dn_dy))/(low**2)
@@ -207,7 +208,7 @@ def calc_P_numba(points, l_k, j, point):
 
 class VPM:
 
-    def __init__(self, points, v_inf, alpha_deg, verbose=False):
+    def __init__(self, points, v_inf, alpha_deg, verbose=False, analytic_derivatives=True):
         
         self.points = points
         self.n = len(self.points[:,0])
@@ -227,6 +228,7 @@ class VPM:
         self.at_points = False
 
         self.verbose = verbose
+        self.analytic_derivatives = analytic_derivatives
 
 
 
@@ -505,23 +507,46 @@ class VPM:
             # P times gammas
             result = np.matmul(P_offset, [self.gamma[j], self.gamma[j+1]])
 
-            # if (j==i):
-            if (i==j): 
-                P_cp = self.P_matrices[j,i]
-                # print("\nP offset = ", P_offset[0,0], P_offset[0,1], P_offset[1,0], P_offset[1,1])
-                # print("    P cp = ", P_cp[0,0], P_cp[0,1], P_cp[1,0], P_cp[1,1])
-                result_cp = np.matmul(P_cp, [self.gamma[j], self.gamma[j+1]])
-                result_book = (self.points[j+1]-self.points[j])*(self.gamma_at_cp[i]/2)/self.l_k[i]
-                result_cp.flatten()
-                result.flatten()
-                # print("\n  self_ind book = ", result_book[0], result_book[1])
-                # print("self_ind offset = ", result[0][0], result[1][0])
-                # print(" self_ind at cp = ", result[0][0], result_cp[1][0])
+            # # if (j==i):
+            # if (i==j): 
+            #     P_cp = self.P_matrices[j,i]
+            #     # print("\nP offset = ", P_offset[0,0], P_offset[0,1], P_offset[1,0], P_offset[1,1])
+            #     # print("    P cp = ", P_cp[0,0], P_cp[0,1], P_cp[1,0], P_cp[1,1])
+            #     result_cp = np.matmul(P_cp, [self.gamma[j], self.gamma[j+1]])
+            #     result_book = (self.points[j+1]-self.points[j])*(self.gamma_at_cp[i]/2)/self.l_k[i]
+            #     result_cp.flatten()
+            #     result.flatten()
+            #     # print("\n  self_ind book = ", result_book[0], result_book[1])
+            #     # print("self_ind offset = ", result[0][0], result[1][0])
+            #     # print(" self_ind at cp = ", result[0][0], result_cp[1][0])
 
 
             velocity += result.flatten()
 
         return velocity
+    
+    # made this for velocity_at_surface_study.py
+    def calc_velocity_at_point_special(self, point, i = 0):
+
+        # # initialize
+        vx_list = np.zeros(self.num_panels)
+        vy_list = np.zeros(self.num_panels)
+
+        # add v_inf terms
+        velocity = np.array((self.v_inf*np.cos(self.alpha_rad), self.v_inf*np.sin(self.alpha_rad)))
+
+        # for each panel
+        for j in range(0,self.n - 1):
+
+            # calc P matrix for influence of jth panel, ith control point
+            P_offset = self.calc_P(j, point)
+
+            # P times gammas
+            result = np.matmul(P_offset, [self.gamma[j], self.gamma[j+1]])
+
+            vx_list[j], vy_list[j] = result[0], result[1]
+
+        return vx_list, vy_list
 
     # function to get velocity at a control point
     def calc_velocity_at_control_point(self, i):
@@ -735,6 +760,15 @@ class VPM:
                 dVx_dy +=  self.dPy_matrices[j,i,0,0]*self.gamma[j] + self.dPy_matrices[j,i,0,1]*self.gamma[j+1]
                 dVy_dx +=  self.dPx_matrices[j,i,1,0]*self.gamma[j] + self.dPx_matrices[j,i,1,1]*self.gamma[j+1]
                 dVy_dy +=  self.dPy_matrices[j,i,1,0]*self.gamma[j] + self.dPy_matrices[j,i,1,1]*self.gamma[j+1]
+                # if i == j:
+                #     print("\ni = j")
+                #     dVx_dx_ij = self.dPx_matrices[j,i,0,0]*self.gamma[j] + self.dPx_matrices[j,i,0,1]*self.gamma[j+1] 
+                #     dVx_dy_ij = self.dPy_matrices[j,i,0,0]*self.gamma[j] + self.dPy_matrices[j,i,0,1]*self.gamma[j+1]
+                #     dVy_dx_ij = self.dPx_matrices[j,i,1,0]*self.gamma[j] + self.dPx_matrices[j,i,1,1]*self.gamma[j+1]
+                #     dVy_dy_ij = self.dPy_matrices[j,i,1,0]*self.gamma[j] + self.dPy_matrices[j,i,1,1]*self.gamma[j+1]
+                #     normal_deriv_self = ( nx*(Vx*dVx_dx_ij + Vy*dVy_dx_ij) + ny*(Vx*dVx_dy_ij + Vy*dVy_dy_ij) )
+                #     print("normal derivative self contribution = ", normal_deriv_self)
+                
 
             dV4_dn = 4.0*(Vx**2 + Vy**2)*( nx*(Vx*dVx_dx + Vy*dVy_dx) + ny*(Vx*dVx_dy + Vy*dVy_dy) )
             integrand = -(1./32.)*dV4_dn
@@ -754,6 +788,54 @@ class VPM:
         if self.verbose: print("appellian with analytic derivatives = ", self.appellian_numerical_with_analytic_derivatives)
              
 
+    def calc_appellian_integrand_with_analytic_derivatives(self, cp_index):
+
+        i = cp_index
+        Vx = self.V_at_cp[i,0]
+        Vy = self.V_at_cp[i,1]
+        nx = self.cp_norm[i,0]
+        ny = self.cp_norm[i,1]
+        print("\nnx = ", nx)
+        print("ny = ", ny)
+        print("Vx/V_inf = ", Vx/self.v_inf)
+        print("Vy/V_inf = ", Vy/self.v_inf)
+
+
+        dVx_dx = 0.0  
+        dVx_dy = 0.0 
+        dVy_dx = 0.0 
+        dVy_dy = 0.0 
+        for j in range(self.num_panels):
+            dVx_dx +=  self.dPx_matrices[j,i,0,0]*self.gamma[j] + self.dPx_matrices[j,i,0,1]*self.gamma[j+1] 
+            dVx_dy +=  self.dPy_matrices[j,i,0,0]*self.gamma[j] + self.dPy_matrices[j,i,0,1]*self.gamma[j+1]
+            dVy_dx +=  self.dPx_matrices[j,i,1,0]*self.gamma[j] + self.dPx_matrices[j,i,1,1]*self.gamma[j+1]
+            dVy_dy +=  self.dPy_matrices[j,i,1,0]*self.gamma[j] + self.dPy_matrices[j,i,1,1]*self.gamma[j+1]
+            
+            if i == j:
+                # try multiplyin times 2
+                dVx_dx +=  -1.0
+                dVx_dy +=  -1.0
+                dVy_dx +=  -1.0
+                dVy_dy +=  -1.0
+                print("\ni = j")
+                dVx_dx_ij = self.dPx_matrices[j,i,0,0]*self.gamma[j] + self.dPx_matrices[j,i,0,1]*self.gamma[j+1] 
+                dVx_dy_ij = self.dPy_matrices[j,i,0,0]*self.gamma[j] + self.dPy_matrices[j,i,0,1]*self.gamma[j+1]
+                dVy_dx_ij = self.dPx_matrices[j,i,1,0]*self.gamma[j] + self.dPx_matrices[j,i,1,1]*self.gamma[j+1]
+                dVy_dy_ij = self.dPy_matrices[j,i,1,0]*self.gamma[j] + self.dPy_matrices[j,i,1,1]*self.gamma[j+1]
+                print("dVx_dx_ij / v_inf = ", dVx_dx_ij/self.v_inf)
+                print("dVx_dy_ij / v_inf = ", dVx_dy_ij/self.v_inf)
+                print("dVy_dx_ij / v_inf = ", dVy_dx_ij/self.v_inf)
+                print("dVy_dy_ij / v_inf = ", dVy_dy_ij/self.v_inf)
+
+                normal_deriv_self = ( nx*(Vx*dVx_dx_ij + Vy*dVy_dx_ij) + ny*(Vx*dVx_dy_ij + Vy*dVy_dy_ij) )
+                print("normal derivative self contribution = ", normal_deriv_self/self.v_inf)
+
+            print("j = ",j,  "  dVx_dy_ij / v_inf = ", (self.dPy_matrices[j,i,0,0]*self.gamma[j] + self.dPy_matrices[j,i,0,1]*self.gamma[j+1])/self.v_inf)
+
+        dV4_dn = 4.0*(Vx**2 + Vy**2)*( nx*(Vx*dVx_dx + Vy*dVy_dx) + ny*(Vx*dVx_dy + Vy*dVy_dy) )
+        integrand = -(1./32.)*dV4_dn
+        dV_dn = (1/np.sqrt(Vx**2 + Vy**2))*( nx*(Vx*dVx_dx + Vy*dVy_dx) + ny*(Vx*dVx_dy + Vy*dVy_dy) )
+        print("dV_dn / v_inf = ", dV_dn/self.v_inf)
 
 
     def plot_velocity_at_control_points(self):
@@ -890,8 +972,10 @@ class VPM:
         self.calc_l_k()
 
         # self.calc_A_matrix()
-        # self.A, self.P_matrices = calc_A_matrix_numba(self.points, self.l_k, self.cp)
-        self.A, self.P_matrices, self.dPx_matrices, self.dPy_matrices = calc_A_matrix_and_derivative_P_matrices_numba(self.points, self.l_k, self.cp)
+        if (self.analytic_derivatives):
+            self.A, self.P_matrices, self.dPx_matrices, self.dPy_matrices = calc_A_matrix_and_derivative_P_matrices_numba(self.points, self.l_k, self.cp)
+        else:
+            self.A, self.P_matrices = calc_A_matrix_numba(self.points, self.l_k, self.cp,verbose=False)
 
         self.calc_b_vector()
         self.solve_for_gamma()

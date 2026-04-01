@@ -33,6 +33,8 @@ class cylinder:
         if np.abs(self.zeta_0) <1.e-12:
             self.epsilon = 0.4*self.radius
             self.epsilon_sharp = 0.4*self.radius
+            print(" WARNING! zeta_0 of zero")
+            sys.exit()
 
         else:
             self.epsilon_sharp = self.radius - np.sqrt(self.radius**2 - self.zeta_0.imag**2) - self.zeta_0.real
@@ -41,7 +43,7 @@ class cylinder:
             # print("            epsilon = ", self.epsilon)
 
         self.C = self.radius - self.epsilon
-
+        print("C = ", self.C)
         self.ofs = offset_from_singularity
         # if self.ofs == True:
 
@@ -269,13 +271,17 @@ class cylinder:
             thetas_chi_vpm = thetas_vpm + self.theta_stag_chi_rad
             chi_surface_vpm = self.radius*np.exp(1j*thetas_chi_vpm)
             zeta_surface_vpm = chi_surface_vpm + self.zeta_0
+            # print("zeta surface vpm = ",zeta_surface_vpm)
 
             z_surface_vpm = np.array([self.zeta_to_z(zeta) for zeta in zeta_surface_vpm])
 
+            # print("z surface vpm = ",z_surface_vpm)
             stag_pt_chi = self.radius*np.exp(1j*self.theta_stag_chi_rad)
             stag_pt_z = self.zeta_to_z(stag_pt_chi+self.zeta_0)
 
         vpm_points = np.column_stack((z_surface_vpm.real, z_surface_vpm.imag))
+        # print(" vpm_points = ", vpm_points)
+        
         
         self.vpm_points_unshifted = vpm_points.copy()
 
