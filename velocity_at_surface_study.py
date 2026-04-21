@@ -31,7 +31,7 @@ print("gamma_k = ", gamma)
 theta_stag = alpha_rad - np.arcsin(gamma/(4*np.pi*v_inf*radius))
 
 # FOR THIS STUDY, n SHOULD BE 4K +2 (TWICE AN ODD NUMBER)
-n_list = [486]
+n_list = [162]
 # n_list = [162, 486, 1458]
 # n_list = [1458, 4374, 13122]
 vals = [[] for _ in range(len(n_list))]
@@ -64,6 +64,8 @@ for j in range(len(n_list)):
     # vpm.h = fd_step
     # vpm.surface_offset = surface_offset
     vpm.run()
+    print("gammas")
+    print(vpm.gamma)
     count = 0
     for i in tqdm(range(len(r_over_R)), desc = f" N = {n} panels "):
         vx, vy = vpm.calc_velocity_at_point([radius, r_over_R[i]])
