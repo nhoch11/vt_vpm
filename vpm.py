@@ -1031,3 +1031,5 @@ if __name__ == "__main__":
     print(f"      CL    = {airfoil.CL[0]: .16f}")
     print(f"      Cm_le = {airfoil.Cm_le[0]: .16f}")
     print(f"      Cm_c4 = {airfoil.Cm_c4[0]: .16f}")
+
+    print("velocity inside", airfoil.calc_velocity_at_point((0.5, 0.0)))

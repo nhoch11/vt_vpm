@@ -30,17 +30,17 @@ class cylinder:
         self.theta_stag_chi_rad = theta_stag_chi_rad
 
         # if self.zeta_0.real == 0.0 and self.zeta_0.imag== 0.0:
-        if np.abs(self.zeta_0) <1.e-12:
-            self.epsilon = 0.4*self.radius
-            self.epsilon_sharp = 0.4*self.radius
-            print(" WARNING! zeta_0 of zero")
-            sys.exit()
+        # if np.abs(self.zeta_0) <1.e-12:
+        #     self.epsilon = 0.4*self.radius
+        #     self.epsilon_sharp = 0.4*self.radius
+        #     print(" WARNING! zeta_0 of zero")
+        #     sys.exit()
 
-        else:
-            self.epsilon_sharp = self.radius - np.sqrt(self.radius**2 - self.zeta_0.imag**2) - self.zeta_0.real
-            # print("epsilon_sharp = ", self.epsilon_sharp)
-            self.epsilon = self.epsilon_sharp*(1. - self.D) + self.D*self.radius
-            # print("            epsilon = ", self.epsilon)
+        # else:
+        self.epsilon_sharp = self.radius - np.sqrt(self.radius**2 - self.zeta_0.imag**2) - self.zeta_0.real
+        # print("epsilon_sharp = ", self.epsilon_sharp)
+        self.epsilon = self.epsilon_sharp*(1. - self.D) + self.D*self.radius
+        # print("            epsilon = ", self.epsilon)
 
         self.C = self.radius - self.epsilon
         print("C = ", self.C)

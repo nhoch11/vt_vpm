@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 start_time = time.time()
 num_doubles = 8
-zeta_clustering = "mirrored_cosine"
+zeta_clustering = "even"
 D = 0.0
 zeta_0 = -0.09 + 1j*0.01
 radius = 1.0

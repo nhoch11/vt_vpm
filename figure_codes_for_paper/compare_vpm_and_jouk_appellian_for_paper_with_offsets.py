@@ -24,7 +24,7 @@ alpha_deg = 5.0
 alpha_rad = np.radians(alpha_deg)
 
 fd_step = 1.0e-8
-surface_offset = 1.0e-10
+surface_offset = 1.0e-12
 
 num_runs = 5
 
@@ -46,16 +46,6 @@ norm_appellian_offset_error_list = []
 norm_appellian_vpm_vs_offset_error_list = []
 points_list = []
 
-
-# Get Truth with Joukowski
-for i in range(1,num_runs+1):
-    n = 10*2**i
-    jouk_vpm = cylinder(D, zeta_0, alpha_rad, v_inf, radius, n, theta_stag, zeta_clustering, False, 0.0, True, False)
-   
-    norm_appellian_jouk_list.append(jouk_vpm.calc_appellian_line_integral(gamma, "trapezoidal", True)/(v_inf**4))
-    
-truth = norm_appellian_jouk_list[-1]
-
 for i in range(1,num_runs+1):
     n = 10*2**i
     points_list.append(n)
@@ -72,6 +62,7 @@ for i in range(1,num_runs+1):
     vpm.surface_offset = surface_offset
     vpm.run()
     
+    norm_appellian_jouk_list.append(jouk_vpm.calc_appellian_line_integral(gamma, "trapezoidal", True)/(v_inf**4))
     norm_appellian_jouk_offset_list.append(jouk_vpm.calc_appellian_offset_in_z(gamma, "trapezoidal", True)/(v_inf**4))
     vpm.calc_appellian_numerical("trapezoidal", True)
     norm_appellian_vpm_list.append(vpm.appellian_numerical/(v_inf**4))
@@ -80,22 +71,21 @@ for i in range(1,num_runs+1):
     norm_appellian_vpm_analytic_list.append(vpm.appellian_numerical_with_analytic_derivatives/(v_inf**4))
     
     ind = i - 1 # because i starts as 1
-    norm_appellian_vpm_error_list.append(100.*np.abs(norm_appellian_vpm_list[ind]-truth)/truth)
-    norm_appellian_vpm_analytic_error_list.append(100.*np.abs(norm_appellian_vpm_analytic_list[ind]-truth)/truth)
-    norm_appellian_offset_error_list.append(100.*np.abs(norm_appellian_jouk_offset_list[ind]-truth)/truth)
+    norm_appellian_vpm_error_list.append(100.*np.abs(norm_appellian_vpm_list[ind]-norm_appellian_jouk_list[ind])/norm_appellian_jouk_list[ind])
+    norm_appellian_vpm_analytic_error_list.append(100.*np.abs(norm_appellian_vpm_analytic_list[ind]-norm_appellian_jouk_list[ind])/norm_appellian_jouk_list[ind])
+    norm_appellian_offset_error_list.append(100.*np.abs(norm_appellian_jouk_offset_list[ind]-norm_appellian_jouk_list[ind])/norm_appellian_jouk_list[ind])
     norm_appellian_vpm_vs_offset_error_list.append(100.*np.abs(norm_appellian_vpm_list[ind]-norm_appellian_jouk_offset_list[ind])/norm_appellian_jouk_offset_list[ind])
 
 
 apply_plot_settings()
 
-
 fig1, ax1 = plt.subplots(**default_subplot_settings)
 
 ax1.plot(points_list, norm_appellian_jouk_list, color='k', linestyle = "-", linewidth = 0.8, label = "Joukowski")  
-# ax1.plot(points_list, norm_appellian_jouk_offset_list, color='0.4', linestyle = "--", linewidth = 0.8,  label = "Jouk-Offset,FD")  
-# ax1.plot(points_list, norm_appellian_vpm_list, color='b', linestyle = "--", linewidth = 0.8,  label = "VPM-Offset,FD")  
+ax1.plot(points_list, norm_appellian_jouk_offset_list, color='0.3', linestyle = "-", linewidth = 0.8,  label = "Jouk-Offset,FD")  
+ax1.plot(points_list, norm_appellian_vpm_list, color='0.3', linestyle = "--", linewidth = 0.8,  label = "VPM-Offset,FD")  
 ax1.plot(points_list, norm_appellian_vpm_analytic_list, color='k', linestyle = "--", linewidth = 0.8,  label = "VPM")  
-ax1.legend(loc='upper right', fontsize = 6 , bbox_to_anchor=(0.98, 0.99))
+ax1.legend(loc='upper right', fontsize = 6 , bbox_to_anchor=(0.97, 0.97))
 ax1.set_xlabel("Number of Panels", fontsize = 10)
 ax1.set_ylabel(rf"Normalized Appellian", fontsize = 10)
 ax1.set_xlim(left=0)
@@ -105,21 +95,19 @@ ax1.set_box_aspect(1)
 
 # save_dir = "figure_codes_for_paper/figures/compare_vpm_and_jouk_appellian"
 # os.makedirs(save_dir, exist_ok = True)
-fig1.savefig(f"figure_codes_for_paper/figures/norm_appellian_values_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}_FD_step={fd_step:.1e}.png", format='png')
-fig1.savefig(fr"C:\Users/nathan/OneDrive - USU/SciTech 2027/Figures/apellian_vs_panel_count.png", format='png')
+fig1.savefig(f"figure_codes_for_paper/figures/surface_offset={surface_offset:.1e}_norm_appellian_values_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}_FD_step={fd_step:.1e}.png", format='png')
+fig1.savefig(fr"C:\Users/nathan/OneDrive - USU/SciTech 2027/Figures/surface_offset={surface_offset:.1e}_apellian_vs_panel_count.png", format='png')
 # fig1.savefig(f"results/{input_name}_integrand_fixed_gamma={fixed_gamma:.3f}_{grid.num_panels}_segments.svg", format='svg')
 # fig1.savefig(f"results/{input_name}_integrand_fixed_gamma={fixed_gamma:.3f}_{grid.num_panels}_segments.pdf", format='pdf')
 
 
 
-
-
-# LOG VERSION
+# LOG Version
 fig1a, ax1a = plt.subplots(**default_subplot_settings)
 
 ax1a.plot(points_list, norm_appellian_jouk_list, color='k', linestyle = "-", linewidth = 0.8, label = "Joukowski")  
-# ax1.plot(points_list, norm_appellian_jouk_offset_list, color='0.4', linestyle = "--", linewidth = 0.8,  label = "Jouk-Offset,FD")  
-# ax1.plot(points_list, norm_appellian_vpm_list, color='b', linestyle = "--", linewidth = 0.8,  label = "VPM-Offset,FD")  
+ax1a.plot(points_list, norm_appellian_jouk_offset_list, color='0.8', linestyle = "-", linewidth = 0.8,  label = "Jouk-Offset,FD")  
+ax1a.plot(points_list, norm_appellian_vpm_list, color='0.8', linestyle = "--", linewidth = 0.8,  label = "VPM-Offset,FD")  
 ax1a.plot(points_list, norm_appellian_vpm_analytic_list, color='k', linestyle = "--", linewidth = 0.8,  label = "VPM")  
 ax1a.legend(loc='upper right', fontsize = 6 , bbox_to_anchor=(0.97, 0.97))
 ax1a.set_xlabel("Number of Panels", fontsize = 10)
@@ -137,59 +125,12 @@ ax1a.tick_params(which = 'both', direction="in")
 
 ax1a.minorticks_on()
 
-ax1a.set_box_aspect(1)
-
 # save_dir = "figure_codes_for_paper/figures/compare_vpm_and_jouk_appellian"
 # os.makedirs(save_dir, exist_ok = True)
-fig1a.savefig(f"figure_codes_for_paper/figures/norm_appellian_values_LOG_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}_FD_step={fd_step:.1e}.png", format='png')
-fig1a.savefig(fr"C:\Users/nathan/OneDrive - USU/SciTech 2027/Figures/apellian_LOG_vs_panel_count.png", format='png')
+fig1a.savefig(f"figure_codes_for_paper/figures/surface_offset={surface_offset:.1e}_LOG_norm_appellian_values_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}_FD_step={fd_step:.1e}.png", format='png')
+fig1a.savefig(fr"C:\Users/nathan/OneDrive - USU/SciTech 2027/Figures/surface_offset={surface_offset:.1e}_LOG_apellian_vs_panel_count.png", format='png')
 # fig1.savefig(f"results/{input_name}_integrand_fixed_gamma={fixed_gamma:.3f}_{grid.num_panels}_segments.svg", format='svg')
 # fig1.savefig(f"results/{input_name}_integrand_fixed_gamma={fixed_gamma:.3f}_{grid.num_panels}_segments.pdf", format='pdf')
-
-
-
-fig3, ax3 = plt.subplots(**default_subplot_settings)
-
-ax3.plot(points_list, norm_appellian_vpm_analytic_error_list, color='k', linestyle = "-",label = "VPM-Analytic")  
-ax3.plot(points_list, norm_appellian_vpm_error_list, color='k', linestyle = "--",label = "VPM-Offset")  
-ax3.legend(loc='upper right', fontsize = 6, bbox_to_anchor=(0.97, 0.97))
-ax3.set_ylim([0., 100])
-ax3.set_xlabel("number of points", fontsize = 10)
-ax3.set_ylabel(rf"appellian abs percent error", fontsize = 10)
-# ax3.set_xscale("log")
-# ax3.set_yscale("log")
-ax3.tick_params(which = 'minor', length = 3, width = 0.5, labelbottom=False, labelleft=False)
-ax3.tick_params(which = 'both', direction="in")
-ax3.set_yticks(np.arange(0, 101, 10))
-ax3.minorticks_off()
-
-ax3.set_box_aspect(1)
-
-fig3.savefig(f"figure_codes_for_paper/figures/norm_appellian_vpm_percent_error_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}_FD_step={fd_step:.1e}.png", format='png')
-fig3.savefig(fr"C:\Users/nathan/OneDrive - USU/SciTech 2027/Figures/vpm_apellian_percent_error_vs_panel_count.png", format='png')
-
-
-
-# LOG VERSION
-fig3a, ax3a = plt.subplots(**default_subplot_settings)
-
-ax3a.plot(points_list, norm_appellian_vpm_analytic_error_list, color='k', linestyle = "-",label = "VPM-Analytic")  
-ax3a.plot(points_list, norm_appellian_vpm_error_list, color='k', linestyle = "--",label = "VPM-Offset")  
-ax3a.legend(loc='upper right', fontsize = 6, bbox_to_anchor=(0.97, 0.97))
-ax3a.set_ylim([10., 100])
-ax3a.set_xlabel("number of points", fontsize = 10)
-ax3a.set_ylabel(rf"appellian abs percent error", fontsize = 10)
-ax3a.set_xscale("log")
-ax3a.set_yscale("log")
-ax3a.tick_params(which = 'minor', length = 3, width = 0.5, labelbottom=False, labelleft=False)
-ax3a.tick_params(which = 'both', direction="in")
-ax3a.minorticks_on()
-
-ax3a.set_box_aspect(1)
-
-fig3a.savefig(f"figure_codes_for_paper/figures/norm_appellian_vpm_percent_error_LOG_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}_FD_step={fd_step:.1e}.png", format='png')
-fig3a.savefig(fr"C:\Users/nathan/OneDrive - USU/SciTech 2027/Figures/vpm_apellian_percent_error_LOG_vs_panel_count.png", format='png')
-
 
 
 
@@ -229,7 +170,7 @@ meta_df = pd.DataFrame(metadata, columns=["",""])
 
 # save_dir = "figure_codes_for_paper/output_files/compare_vpm_and_jouk_appellian"
 # os.makedirs(save_dir, exist_ok = True)
-with pd.ExcelWriter(f"figure_codes_for_paper/output_files/appelliean_values_and_error_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}_FD_step={fd_step:.1e}.xlsx", engine="openpyxl") as writer:
+with pd.ExcelWriter(f"figure_codes_for_paper/output_files/surface_offset={surface_offset:.1e}_appelliean_values_and_error_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_FD_step={fd_step:.1e}.xlsx", engine="openpyxl") as writer:
     meta_df.to_excel(writer, index=False, header=False, startrow=0)
     df.to_excel(writer, index=False, startrow=len(meta_df) + 1)
 
