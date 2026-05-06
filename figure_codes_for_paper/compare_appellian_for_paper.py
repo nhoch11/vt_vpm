@@ -1,8 +1,9 @@
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from matplotlib.lines import Line2D
 import time
-from main import airfoil
+from old_main import airfoil
 from openpyxl import Workbook
 import matplotlib.pyplot as plt
 from plot_settings import apply_plot_settings, default_subplot_settings
@@ -141,8 +142,8 @@ ax1a.set_box_aspect(1)
 
 # save_dir = "figure_codes_for_paper/figures/compare_vpm_and_jouk_appellian"
 # os.makedirs(save_dir, exist_ok = True)
-fig1a.savefig(f"figure_codes_for_paper/figures/norm_appellian_values_LOG_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}_FD_step={fd_step:.1e}.png", format='png')
-fig1a.savefig(fr"C:\Users/nathan/OneDrive - USU/SciTech 2027/Figures/apellian_LOG_vs_panel_count.png", format='png')
+fig1a.savefig(f"figure_codes_for_paper/figures/LOG_norm_appellian_values_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}_FD_step={fd_step:.1e}.png", format='png')
+fig1a.savefig(fr"C:\Users/nathan/OneDrive - USU/SciTech 2027/Figures/LOG_apellian_vs_panel_count.png", format='png')
 # fig1.savefig(f"results/{input_name}_integrand_fixed_gamma={fixed_gamma:.3f}_{grid.num_panels}_segments.svg", format='svg')
 # fig1.savefig(f"results/{input_name}_integrand_fixed_gamma={fixed_gamma:.3f}_{grid.num_panels}_segments.pdf", format='pdf')
 
@@ -152,10 +153,17 @@ fig3, ax3 = plt.subplots(**default_subplot_settings)
 
 ax3.plot(points_list, norm_appellian_vpm_analytic_error_list, color='k', linestyle = "-",label = "VPM-Analytic")  
 ax3.plot(points_list, norm_appellian_vpm_error_list, color='k', linestyle = "--",label = "VPM-Offset")  
-ax3.legend(loc='upper right', fontsize = 6, bbox_to_anchor=(0.97, 0.97))
+
+# add an note at the bottom of the legend
+handles, labels = ax1.get_legend_handles_labels()
+handles.append(Line2D([],[], linestyle="none"))
+labels.append(f"Offset = {surface_offset}")
+ax3.legend(handles, labels, loc='upper right', fontsize = 6 , bbox_to_anchor=(0.97, 0.97))
+
+
 ax3.set_ylim([0., 100])
-ax3.set_xlabel("number of points", fontsize = 10)
-ax3.set_ylabel(rf"appellian abs percent error", fontsize = 10)
+ax3.set_xlabel("Number of Panels", fontsize = 10)
+ax3.set_ylabel(r"VPM Appellian Absolute \% Error", fontsize = 10)
 # ax3.set_xscale("log")
 # ax3.set_yscale("log")
 ax3.tick_params(which = 'minor', length = 3, width = 0.5, labelbottom=False, labelleft=False)
@@ -175,10 +183,15 @@ fig3a, ax3a = plt.subplots(**default_subplot_settings)
 
 ax3a.plot(points_list, norm_appellian_vpm_analytic_error_list, color='k', linestyle = "-",label = "VPM-Analytic")  
 ax3a.plot(points_list, norm_appellian_vpm_error_list, color='k', linestyle = "--",label = "VPM-Offset")  
-ax3a.legend(loc='upper right', fontsize = 6, bbox_to_anchor=(0.97, 0.97))
-ax3a.set_ylim([10., 100])
-ax3a.set_xlabel("number of points", fontsize = 10)
-ax3a.set_ylabel(rf"appellian abs percent error", fontsize = 10)
+
+# add an note at the bottom of the legend
+handles, labels = ax1.get_legend_handles_labels()
+handles.append(Line2D([],[], linestyle="none"))
+labels.append(f"Offset = {surface_offset}")
+ax3a.legend(handles, labels, loc='upper right', fontsize = 6 , bbox_to_anchor=(0.97, 0.97))
+
+ax3a.set_xlabel("Number of Panels", fontsize = 10)
+ax3a.set_ylabel(r"VPM Appellian Absolute \% Error", fontsize = 10)
 ax3a.set_xscale("log")
 ax3a.set_yscale("log")
 ax3a.tick_params(which = 'minor', length = 3, width = 0.5, labelbottom=False, labelleft=False)
@@ -187,8 +200,8 @@ ax3a.minorticks_on()
 
 ax3a.set_box_aspect(1)
 
-fig3a.savefig(f"figure_codes_for_paper/figures/norm_appellian_vpm_percent_error_LOG_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}_FD_step={fd_step:.1e}.png", format='png')
-fig3a.savefig(fr"C:\Users/nathan/OneDrive - USU/SciTech 2027/Figures/vpm_apellian_percent_error_LOG_vs_panel_count.png", format='png')
+fig3a.savefig(f"figure_codes_for_paper/figures/LOG_norm_appellian_vpm_percent_error_LOG_zeta_clustering={zeta_clustering}_zeta0={zeta_0}_D={D}_surface_offset={surface_offset:.1e}_FD_step={fd_step:.1e}.png", format='png')
+fig3a.savefig(fr"C:\Users/nathan/OneDrive - USU/SciTech 2027/Figures/LOG_vpm_apellian_percent_error_vs_panel_count.png", format='png')
 
 
 

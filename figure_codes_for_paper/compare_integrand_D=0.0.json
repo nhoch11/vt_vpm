@@ -1,0 +1,105 @@
+{
+    "surface_grid": {
+        "type": "mapping",
+        "type_options": ["mapping", "equation", "file"],
+        "num_panels": 1280,
+        "mapping_inputs": {
+            "offset_from_singularity": false,
+            "offset_coef": 1e-3,
+            "clustering": "even",
+            "clustering_options": ["even", "chebyshev", "cosine", "mirrored_cosine", "log_cosine", "log_mirrored_cosine"],
+            "radius": 1.0,
+            "shape_D": 0.0,
+            "xzeta_0": [-0.09237604307034011 ,  0.03802668541707471],
+            "zeta_0": [-0.09 ,  0.01] 
+        },
+        "equation_inputs":{
+            "is_NACA_4": false,
+            "NACA_4_code": 2412
+        },
+        "file": {}
+    },
+    "volume_grid":{
+        "do_mapping_based": false,
+        "do_surface_based": false,
+        "mapping_inputs": {
+            "wake_cells": 10000,
+            "radial_cells": 2000,
+            "radial_distance": 10,
+            "radial_growth": 1.1
+        },
+        "equation_inputs":{},
+        "from_panels": {}
+    },
+    "operating": {
+        "freestream_velocity": 10.0,
+        "angle_of_attack[deg]": 5.0
+    }, 
+    "appellian":{
+        "do_test": false,
+        "a": 0.02,
+        "xtype_of_integration": "left",
+        "type_of_integration": "trapezoidal",
+        "do_analytic_partials": false,
+        "do_numerical_partials": false,
+        "do_vpm_analytic_partials": false,
+        "do_vpm_numerical_partials": true,
+        "use_vpm_gamma": false,
+        "do_circle_in_z_plane" : false,
+        "do_offset_in_z_plane" : false,
+        "do_area_integral": false,
+        "do_line_integral": true,
+        "central_diff_step":  1E-6
+    },
+    "Euler":{
+        "do_SU2_run": false
+    },
+    "plot":{
+        "do_airfoil_plot": false,
+        "plot_airfoil_options":{
+            "x_lim": [-3,3],
+            "y_lim": [-2.0, 2.0],
+            "do_chi_surface": true,
+            "do_zeta_surface": true,
+            "do_z_surface": true,
+            "do_paneled_surface": true,
+            "do_node_labels": true,
+            "do_svg": false,
+            "do_pdf": false,
+            "show_chi":false,
+            "show_zeta": false,
+            "show_z":true
+        },
+        "do_volume_plot": false,
+        "plot_volume_options":{
+            "x_lim": [-3,3],
+            "y_lim": [-2.0, 2.0],
+            "do_zeta_volume": false,
+            "do_z_volume": true,
+            "do_paneled_volume": true,
+            "do_svg": false,
+            "do_pdf": false,
+            "show": false
+        },
+        "do_gamma_vs_D_plot": false,
+        "plot_gamma_vs_D_options": {
+            "do_log_log": false,
+            "do_svg": false,
+            "do_pdf": false,
+            "show": false
+        },
+        "do_streamlines_plot": false,
+        "plot_streamlines_options": {
+            "num_streamlines": 5,
+            "delta_y": 0.1,
+            "delta_s": 0.001,
+            "x_lim": [-3,3],
+            "y_lim": [-2.0, 2.0],
+            "do_svg": false,
+            "do_pdf": false,
+            "show": false
+        }
+    
+    }
+
+}

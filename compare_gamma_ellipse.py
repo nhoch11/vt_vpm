@@ -1,7 +1,7 @@
 import os
 import sys
 import time
-from main import airfoil
+from old_main import airfoil
 from openpyxl import Workbook
 import matplotlib.pyplot as plt
 from plot_settings import apply_plot_settings, default_subplot_settings

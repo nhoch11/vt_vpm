@@ -1,7 +1,8 @@
 import os
 import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import time
-from main import airfoil
+from old_main import airfoil
 from openpyxl import Workbook
 import matplotlib.pyplot as plt
 from plot_settings import apply_plot_settings, default_subplot_settings
@@ -15,9 +16,9 @@ start_time = time.time()
 # set paths to various directories
 script_dir = os.path.dirname(__file__)
 # studies_folder = os.path.join(script_dir, "studies")
-input_name = "compare_vpm_and_mapping_D=0.2"
+input_name = "compare_integrand_D=0.0"
 input_json = input_name + ".json"
-input = os.path.join(script_dir, "input_files", input_json)
+input = os.path.join(script_dir, input_json)
 
 # define the grid resolution input file. 
 input = os.path.join(input)
@@ -150,8 +151,8 @@ name1 = f"Figures/{grid.num_panels}_vpm_analytic/integrand/{input_name}_integran
 os.makedirs(os.path.dirname(name1), exist_ok=True)
 fig1.savefig(name1, format='png')
 
-# # fig1.savefig(f"results/{input_name}_integrand_fixed_gamma={fixed_gamma:.3f}_{grid.num_panels}_segments.svg", format='svg')
-# # fig1.savefig(f"results/{input_name}_integrand_fixed_gamma={fixed_gamma:.3f}_{grid.num_panels}_segments.pdf", format='pdf')
+fig1.savefig(f"figure_codes_for_paper/figures/integrand_zeta0={jouk_vpm.}_D={jouk_vpm.}fixed_gamma={fixed_gamma:.3f}_{grid.num_panels}_segments_{ap}_offset={vpm.surface_offset:.1e}.png", format='png')
+fig1.savefig(fr"C:\Users/nathan/OneDrive - USU/SciTech 2027/Figures/apellian_vs_panel_count.png", format='png')
 
 
 # fig6, ax6 = plt.subplots(**default_subplot_settings)
